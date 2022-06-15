@@ -1,16 +1,17 @@
-/// A structure to hold function parameters:
+/// A structure to hold function parameters
 ///
+/// Function examples:
 /// - `f(x) = gain * x + offset`
 /// - `f(x) = gain * x ^ power`
 /// - `f(x) = gain * base ^ x`
 ///
 /// # Example
 /// ```
-/// let p = big_o::Params::new().gain(2.0).offset(3.0).build();
+/// let params = big_o::Params::new().gain(2.0).offset(3.0).build();
 ///
-/// assert_eq!(p.gain, Some(2.0));
-/// assert_eq!(p.offset, Some(3.0));
-/// assert_eq!(p.power, None);
+/// assert_eq!(params.gain, Some(2.0));
+/// assert_eq!(params.offset, Some(3.0));
+/// assert_eq!(params.power, None);
 /// ```
 #[derive(Clone, Debug)]
 pub struct Params {
@@ -21,7 +22,7 @@ pub struct Params {
     pub base: Option<f64>,
 }
 
-/// Params builder.
+/// Params builder
 impl Params {
     pub fn new() -> Self {
         Self {
