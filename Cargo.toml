@@ -1,6 +1,6 @@
 [package]
 name = "big_o"
-description = "Infers asymptotic computational complexity."
+description = "Infers asymptotic computational complexity"
 version = "0.1.0"
 edition = "2021"
 authors = ["Maksym Arutyunyan"]
