@@ -3,16 +3,22 @@ use crate::name;
 use crate::name::Name;
 use crate::params::Params;
 
+/// A structure to describe asymptotic computational complexity
 #[derive(Clone, Debug)]
 pub struct Complexity {
+    /// Human-readable name
     pub name: Name,
+
+    /// Big O notation
     pub notation: &'static str,
+
+    /// Approximation function parameters
     pub params: Params,
 }
 
 impl Complexity {
-    /// Returns a calculated function f(x), given coefficients (a, b).
-    fn get_function(&self) -> Result<Box<dyn Fn(f64) -> f64>, &'static str> {
+    /// Returns a calculated approximation function `f(x)`
+    pub fn get_function(&self) -> Result<Box<dyn Fn(f64) -> f64>, &'static str> {
         let p = &self.params;
         if let (Some(a), Some(b)) = match self.name {
             Name::Polynomial => (p.gain, p.power),
@@ -35,7 +41,7 @@ impl Complexity {
         }
     }
 
-    /// Computes values of f(x) given x.
+    /// Computes values of `f(x)` given `x`
     pub fn compute_f(&self, x: Vec<f64>) -> Result<Vec<f64>, &'static str> {
         let f = self.get_function()?;
         let y = x.into_iter().map(f).collect();
