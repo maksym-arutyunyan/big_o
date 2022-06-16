@@ -6,6 +6,10 @@ edition = "2021"
 authors = ["Maksym Arutyunyan"]
 repository = "https://github.com/maksym-arutyunyan/big_o"
 
+readme = "README.md"
+license = "Apache-2.0"
+keywords = ["big_o", "asymptotic", "complexity"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
