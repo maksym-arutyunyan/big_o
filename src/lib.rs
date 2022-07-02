@@ -6,7 +6,6 @@
 //!
 //! # Example
 //! ```
-//! # use assert_approx_eq::assert_approx_eq;
 //! // f(x) = gain * x ^ 2 + offset
 //! let data = vec![(1., 1.), (2., 4.), (3., 9.), (4., 16.)];
 //!
@@ -14,8 +13,6 @@
 //!
 //! assert_eq!(complexity.name, big_o::Name::Quadratic);
 //! assert_eq!(complexity.notation, "O(n^2)");
-//! assert_approx_eq!(complexity.params.gain.unwrap(), 1.0, 1e-6);
-//! assert_approx_eq!(complexity.params.offset.unwrap(), 0.0, 1e-6);
 //! ```
 
 mod complexity;
@@ -32,7 +29,6 @@ pub use crate::params::Params;
 ///
 /// # Example
 /// ```
-/// # use assert_approx_eq::assert_approx_eq;
 /// // f(x) = gain * x ^ 2 + offset
 /// let data = vec![(1., 1.), (2., 4.), (3., 9.), (4., 16.)];
 ///
@@ -40,8 +36,6 @@ pub use crate::params::Params;
 ///
 /// assert_eq!(complexity.name, big_o::Name::Quadratic);
 /// assert_eq!(complexity.notation, "O(n^2)");
-/// assert_approx_eq!(complexity.params.gain.unwrap(), 1.0, 1e-6);
-/// assert_approx_eq!(complexity.params.offset.unwrap(), 0.0, 1e-6);
 /// ```
 pub fn infer_complexity(
     data: Vec<(f64, f64)>,
