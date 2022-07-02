@@ -49,6 +49,29 @@ impl Complexity {
     }
 }
 
+pub struct ComplexityBuilder {
+    name: Name,
+    params: Option<Params>,
+}
+
+impl ComplexityBuilder {
+    pub fn new(name: Name) -> Self {
+        Self { name, params: None }
+    }
+
+    pub fn build(&self) -> Complexity {
+        let mut params = Params::new().build();
+        if let Some(p) = &self.params {
+            params = p.clone();
+        }
+        Complexity {
+            name: self.name,
+            notation: name::notation(self.name),
+            params,
+        }
+    }
+}
+
 /// Transforms input data into linear complexity.
 fn linearize(name: Name, x: f64, y: f64) -> (f64, f64) {
     match name {
@@ -79,6 +102,34 @@ fn delinearize(name: Name, gain: f64, offset: f64, residuals: f64) -> Params {
     }
 }
 
+fn rank(complexity: Complexity) -> u32 {
+    match complexity.name {
+        Name::Constant => 0,
+        Name::Logarithmic => 500,
+        Name::Linear => 1_000,
+        Name::Linearithmic => 1_500,
+        Name::Quadratic => 2_000,
+        Name::Cubic => 3_000,
+        Name::Polynomial => {
+            match complexity.params.power {
+                Some(power) => {
+                    if power < 1.0 {
+                        500
+                    } else if power < 2.0 {
+                        1_500
+                    } else if power < 3.0 {
+                        2_500
+                    } else {
+                        10_000
+                    }
+                }
+                None => 0, // TODO: fix error
+            }
+        }
+        Name::Exponential => 1_000_000,
+    }
+}
+
 /// Fits a function of given complexity into input data.
 pub fn fit(name: Name, data: Vec<(f64, f64)>) -> Result<Complexity, &'static str> {
     let linearized = data
@@ -93,4 +144,28 @@ pub fn fit(name: Name, data: Vec<(f64, f64)>) -> Result<Complexity, &'static str
         notation: name::notation(name),
         params: delinearize(name, gain, offset, residuals),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rank_obvious_cases() {
+        let test_cases = vec![
+            // A < B
+            (Name::Constant, Name::Logarithmic),
+            (Name::Logarithmic, Name::Linear),
+            (Name::Linear, Name::Linearithmic),
+            (Name::Linearithmic, Name::Quadratic),
+            (Name::Quadratic, Name::Cubic),
+            (Name::Cubic, Name::Exponential),
+        ];
+        for (lo, hi) in test_cases {
+            assert!(
+                rank(ComplexityBuilder::new(lo).build())
+                    < rank(ComplexityBuilder::new(hi).build())
+            );
+        }
+    }
 }
