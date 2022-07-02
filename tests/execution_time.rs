@@ -6,7 +6,7 @@ use std::fmt::Write as _; // import without risk of name clashing
 fn write_csv(data: &Vec<(f64, f64)>, path: &str) {
     let mut text = String::new();
     for (x, y) in data {
-        let _ = write!(text, "{},{}\n", *x, *y);
+        let _ = writeln!(text, "{},{}", *x, *y);
     }
     std::fs::write(path, text).expect("Unable to write file");
 }
