@@ -1,11 +1,12 @@
 use std::time::Instant;
 use std::{thread, time};
+use std::fmt::Write as _; // import without risk of name clashing
 
 #[allow(dead_code)]
 fn write_csv(data: &Vec<(f64, f64)>, path: &str) {
     let mut text = String::new();
     for (x, y) in data {
-        text.push_str(&format!("{},{}\n", *x, *y));
+        let _ = write!(text, "{},{}\n", *x, *y);
     }
     std::fs::write(path, text).expect("Unable to write file");
 }
