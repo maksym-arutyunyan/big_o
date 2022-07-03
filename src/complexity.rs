@@ -14,6 +14,9 @@ pub struct Complexity {
 
     /// Approximation function parameters
     pub params: Params,
+
+    /// Relative rank
+    pub rank: u32,
 }
 
 impl Complexity {
@@ -69,10 +72,12 @@ impl ComplexityBuilder {
         if let Some(p) = &self.params {
             params = p.clone();
         }
+        let rank = rank(self.name, params.clone());
         Complexity {
             name: self.name,
             notation: name::notation(self.name),
             params,
+            rank,
         }
     }
 }
@@ -107,7 +112,7 @@ fn delinearize(name: Name, gain: f64, offset: f64, residuals: f64) -> Params {
     }
 }
 
-fn rank(complexity: Complexity) -> u32 {
+fn rank(name: Name, params: Params) -> u32 {
     // Rank is similar to a degree of a corresponding polynomial:
     // - constant: 0
     // - logarithmic: 130, empirical value k for a big x in f(x) = x ^ k
@@ -119,7 +124,7 @@ fn rank(complexity: Complexity) -> u32 {
     // - polynomial: depends on power parameter
     // - exponential: 1_000_000, practically there is no sense in polynomial
     //     with exponent > 1000
-    match complexity.name {
+    match name {
         Name::Constant => 0,
         Name::Logarithmic => 130,
         Name::Linear => 1_000,
@@ -127,7 +132,7 @@ fn rank(complexity: Complexity) -> u32 {
         Name::Quadratic => 2_000,
         Name::Cubic => 3_000,
         Name::Polynomial => {
-            match complexity.params.power {
+            match params.power {
                 Some(power) => std::cmp::min((1_000.0 * power) as u32, 1_000_000),
                 None => panic!("Missing power parameter"),
             }
@@ -144,11 +149,14 @@ pub fn fit(name: Name, data: Vec<(f64, f64)>) -> Result<Complexity, &'static str
         .collect();
 
     let (gain, offset, residuals) = linalg::fit_line(linearized)?;
+    let params = delinearize(name, gain, offset, residuals);
+    let rank = rank(name, params.clone());
 
     Ok(Complexity {
         name,
         notation: name::notation(name),
-        params: delinearize(name, gain, offset, residuals),
+        params,
+        rank,
     })
 }
 
@@ -192,22 +200,22 @@ mod tests {
 
     #[test]
     fn test_complecity_rank() {
-        let test_cases = vec![
-            // A < B
-            (constant(), logarithmic()),
-            (logarithmic(), polynomial(0.5)),
-            (polynomial(0.5), linear()),
-            (linear(), linearithmic()),
-            (linearithmic(), polynomial(1.5)),
-            (polynomial(1.5), quadratic()),
-            (quadratic(), polynomial(2.5)),
-            (polynomial(2.5), cubic()),
-            (cubic(), polynomial(3.5)),
-            (polynomial(3.5), exponential()),
-        ];
+        // O(1) < ... < O(n)
+        assert!(constant().rank < logarithmic().rank);
+        assert!(logarithmic().rank < polynomial(0.5).rank);
+        assert!(polynomial(0.5).rank < linear().rank);
 
-        for (lo, hi) in test_cases {
-            assert!(rank(lo) < rank(hi));
-        }
+        // O(n) < ... < O(n^2)
+        assert!(linear().rank < linearithmic().rank);
+        assert!(linearithmic().rank < polynomial(1.5).rank);
+        assert!(polynomial(1.5).rank < quadratic().rank);
+
+        // O(n^2) < ... < O(n^3)
+        assert!(quadratic().rank < polynomial(2.5).rank);
+        assert!(polynomial(2.5).rank < cubic().rank);
+
+        // O(n^3) < ... < O(c^n)
+        assert!(cubic().rank < polynomial(3.5).rank);
+        assert!(polynomial(3.5).rank < exponential().rank);
     }
 }
