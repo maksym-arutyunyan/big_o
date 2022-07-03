@@ -108,27 +108,28 @@ fn delinearize(name: Name, gain: f64, offset: f64, residuals: f64) -> Params {
 }
 
 fn rank(complexity: Complexity) -> u32 {
+    // Rank is similar to a degree of a corresponding polynomial:
+    // - constant: 0
+    // - logarithmic: 130, empirical value k for a big x in f(x) = x ^ k
+    //     base 1_000_000 log of 6 is 0.130
+    // - linear: 1_000, f(x) = x ^ 1.000
+    // - linearithmic:
+    // - quadratic: 2_000, f(x) = x ^ 2.000
+    // - cubic: 3_000, f(x) = x ^ 3.000
+    // - polynomial: depends on power parameter
+    // - exponential: 1_000_000, practically there is no sense in polynomial
+    //     with exponent > 1000
     match complexity.name {
         Name::Constant => 0,
-        Name::Logarithmic => 500,
+        Name::Logarithmic => 130,
         Name::Linear => 1_000,
-        Name::Linearithmic => 1_500,
+        Name::Linearithmic => 1_130,
         Name::Quadratic => 2_000,
         Name::Cubic => 3_000,
         Name::Polynomial => {
             match complexity.params.power {
-                Some(power) => {
-                    if power < 1.0 {
-                        500
-                    } else if power < 2.0 {
-                        1_500
-                    } else if power < 3.0 {
-                        2_500
-                    } else {
-                        10_000
-                    }
-                }
-                None => 0, // TODO: fix error
+                Some(power) => std::cmp::min((1_000.0 * power) as u32, 1_000_000),
+                None => panic!("Missing power parameter"),
             }
         }
         Name::Exponential => 1_000_000,
@@ -155,52 +156,58 @@ pub fn fit(name: Name, data: Vec<(f64, f64)>) -> Result<Complexity, &'static str
 mod tests {
     use super::*;
 
-    #[test]
-    fn rank_obvious_cases() {
-        let constant = ComplexityBuilder::new(Name::Constant).build();
-        let logarithmic = ComplexityBuilder::new(Name::Logarithmic).build();
-        let linear = ComplexityBuilder::new(Name::Linear).build();
-        let linearithmic = ComplexityBuilder::new(Name::Linearithmic).build();
-        let quadratic = ComplexityBuilder::new(Name::Quadratic).build();
-        let cubic = ComplexityBuilder::new(Name::Cubic).build();
-        let exponential = ComplexityBuilder::new(Name::Exponential).build();
+    fn constant() -> Complexity {
+        ComplexityBuilder::new(Name::Constant).build()
+    }
 
-        assert!(rank(constant) < rank(logarithmic.clone()));
-        assert!(rank(logarithmic) < rank(linear.clone()));
-        assert!(rank(linear) < rank(linearithmic.clone()));
-        assert!(rank(linearithmic) < rank(quadratic.clone()));
-        assert!(rank(quadratic) < rank(cubic.clone()));
-        assert!(rank(cubic) < rank(exponential.clone()));
+    fn logarithmic() -> Complexity {
+        ComplexityBuilder::new(Name::Logarithmic).build()
+    }
+
+    fn linear() -> Complexity {
+        ComplexityBuilder::new(Name::Linear).build()
+    }
+
+    fn linearithmic() -> Complexity {
+        ComplexityBuilder::new(Name::Linearithmic).build()
+    }
+
+    fn quadratic() -> Complexity {
+        ComplexityBuilder::new(Name::Quadratic).build()
+    }
+
+    fn cubic() -> Complexity {
+        ComplexityBuilder::new(Name::Cubic).build()
+    }
+
+    fn exponential() -> Complexity {
+        ComplexityBuilder::new(Name::Exponential).build()
+    }
+
+    fn polynomial(power: f64) -> Complexity {
+        ComplexityBuilder::new(Name::Polynomial)
+            .power(power)
+            .build()
     }
 
     #[test]
-    fn rank_polynomial() {
-        let constant = ComplexityBuilder::new(Name::Constant).build();
-        let linear = ComplexityBuilder::new(Name::Linear).build();
-        let quadratic = ComplexityBuilder::new(Name::Quadratic).build();
-        let cubic = ComplexityBuilder::new(Name::Cubic).build();
-        let exponential = ComplexityBuilder::new(Name::Exponential).build();
+    fn test_complecity_rank() {
+        let test_cases = vec![
+            // A < B
+            (constant(), logarithmic()),
+            (logarithmic(), polynomial(0.5)),
+            (polynomial(0.5), linear()),
+            (linear(), linearithmic()),
+            (linearithmic(), polynomial(1.5)),
+            (polynomial(1.5), quadratic()),
+            (quadratic(), polynomial(2.5)),
+            (polynomial(2.5), cubic()),
+            (cubic(), polynomial(3.5)),
+            (polynomial(3.5), exponential()),
+        ];
 
-        let p05 = ComplexityBuilder::new(Name::Polynomial).power(0.5).build();
-        let p15 = ComplexityBuilder::new(Name::Polynomial).power(1.5).build();
-        let p25 = ComplexityBuilder::new(Name::Polynomial).power(2.5).build();
-        let p35 = ComplexityBuilder::new(Name::Polynomial).power(3.5).build();
-
-        // O(1) < O(n^0.5) < O(n)
-        assert!(rank(constant) < rank(p05.clone()));
-        assert!(rank(p05) < rank(linear.clone()));
-
-        // O(n) < O(n^1.5) < O(n^2)
-        assert!(rank(linear) < rank(p15.clone()));
-        assert!(rank(p15) < rank(quadratic.clone()));
-
-        // O(n^2) < O(n^2.5) < O(n^3)
-        assert!(rank(quadratic) < rank(p25.clone()));
-        assert!(rank(p25) < rank(cubic.clone()));
-
-        // O(n^3) < O(n^3.5) < O(c^n)
-        assert!(rank(cubic) < rank(p35.clone()));
-        assert!(rank(p35) < rank(exponential.clone()));
+        for (lo, hi) in test_cases {
+            assert!(rank(lo) < rank(hi));
+        }
     }
-
 }
