@@ -10,14 +10,14 @@ fn infer_exponential_stress_1() {
     let f = Box::new(|x: f64| gain * base.powf(x));
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (best, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
 
-    println!("{:?}", best.params);
+    println!("{:?}", complexity.params);
 
-    assert_eq!(best.name, name);
-    assert_eq!(best.notation, notation);
-    assert_approx_eq!(best.params.gain.unwrap(), gain, EPSILON);
-    assert_approx_eq!(best.params.base.unwrap(), base, EPSILON);
+    assert_eq!(complexity.name, name);
+    assert_eq!(complexity.notation, notation);
+    assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
+    assert_approx_eq!(complexity.params.base.unwrap(), base, EPSILON);
 }
 
 #[test]
@@ -28,14 +28,14 @@ fn infer_exponential_stress_2() {
     let f = Box::new(|x: f64| gain * base.powf(x));
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (best, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
 
-    println!("{:?}", best.params);
+    println!("{:?}", complexity.params);
 
-    assert_eq!(best.name, name);
-    assert_eq!(best.notation, notation);
-    assert_approx_eq!(best.params.gain.unwrap(), gain, EPSILON);
-    assert_approx_eq!(best.params.base.unwrap(), base, EPSILON);
+    assert_eq!(complexity.name, name);
+    assert_eq!(complexity.notation, notation);
+    assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
+    assert_approx_eq!(complexity.params.base.unwrap(), base, EPSILON);
 }
 
 #[test]
@@ -46,12 +46,12 @@ fn infer_logarithmic_stress_1() {
     let f = Box::new(|x: f64| gain * x.ln() + offset);
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (best, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
 
-    println!("{:?}", best.params);
+    println!("{:?}", complexity.params);
 
-    assert_eq!(best.name, name);
-    assert_eq!(best.notation, notation);
-    assert_approx_eq!(best.params.gain.unwrap(), gain, EPSILON);
-    assert_approx_eq!(best.params.offset.unwrap(), offset, EPSILON);
+    assert_eq!(complexity.name, name);
+    assert_eq!(complexity.notation, notation);
+    assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
+    assert_approx_eq!(complexity.params.offset.unwrap(), offset, EPSILON);
 }

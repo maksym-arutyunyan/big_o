@@ -74,8 +74,8 @@ fn time_infer_complexity_constant() {
     let runs = 3;
     let n: Vec<u64> = vec![1, 1_000, 1_000_000, 1_000_000_000, 1_000_000_000_000];
     let data = measure_execution_time(&n, dummy_constant, runs);
-    let (best, _all) = big_o::infer_complexity(data).unwrap();
-    assert_eq!(best.name, big_o::Name::Constant);
+    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    assert_eq!(complexity.name, big_o::Name::Constant);
 }
 
 #[test]
@@ -83,8 +83,8 @@ fn time_infer_complexity_logarithmic() {
     let runs = 10;
     let n: Vec<u64> = vec![1, 10, 100, 1_000, 10_000, 100_000];
     let data = measure_execution_time(&n, dummy_logarithmic, runs);
-    let (best, _all) = big_o::infer_complexity(data).unwrap();
-    assert_eq!(best.name, big_o::Name::Logarithmic);
+    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    assert_eq!(complexity.name, big_o::Name::Logarithmic);
 }
 
 #[test]
@@ -92,8 +92,8 @@ fn time_infer_complexity_linear() {
     let runs = 10;
     let n: Vec<u64> = vec![1, 2, 5, 10, 50, 100, 500];
     let data = measure_execution_time(&n, dummy_linear, runs);
-    let (best, _all) = big_o::infer_complexity(data).unwrap();
-    assert_eq!(best.name, big_o::Name::Linear);
+    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    assert_eq!(complexity.name, big_o::Name::Linear);
 }
 
 #[test]
@@ -101,8 +101,8 @@ fn time_infer_complexity_linearithmic() {
     let runs = 10;
     let n: Vec<u64> = vec![1, 2, 5, 10, 20, 50, 100];
     let data = measure_execution_time(&n, dummy_linearithmic, runs);
-    let (best, _all) = big_o::infer_complexity(data).unwrap();
-    assert_eq!(best.name, big_o::Name::Linearithmic);
+    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    assert_eq!(complexity.name, big_o::Name::Linearithmic);
 }
 
 #[test]
@@ -110,8 +110,8 @@ fn time_infer_complexity_quadratic() {
     let runs = 10;
     let n: Vec<u64> = vec![1, 2, 5, 10, 20, 50];
     let data = measure_execution_time(&n, dummy_quadratic, runs);
-    let (best, _all) = big_o::infer_complexity(data).unwrap();
-    assert_eq!(best.name, big_o::Name::Quadratic);
+    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    assert_eq!(complexity.name, big_o::Name::Quadratic);
 }
 
 #[test]
@@ -119,8 +119,8 @@ fn time_infer_complexity_cubic() {
     let runs = 5;
     let n: Vec<u64> = vec![1, 2, 5, 10, 20];
     let data = measure_execution_time(&n, dummy_cubic, runs);
-    let (best, _all) = big_o::infer_complexity(data).unwrap();
-    assert_eq!(best.name, big_o::Name::Cubic);
+    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    assert_eq!(complexity.name, big_o::Name::Cubic);
 }
 
 #[test]
@@ -128,8 +128,8 @@ fn time_infer_complexity_polynomial() {
     let runs = 1;
     let n: Vec<u64> = vec![3, 5, 7, 9, 11, 13];
     let data = measure_execution_time(&n, dummy_polynomial, runs);
-    let (best, _all) = big_o::infer_complexity(data).unwrap();
-    assert_eq!(best.name, big_o::Name::Polynomial);
+    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    assert_eq!(complexity.name, big_o::Name::Polynomial);
 }
 
 #[test]
@@ -137,6 +137,6 @@ fn time_infer_complexity_exponential() {
     let runs = 1;
     let n: Vec<u64> = vec![1, 3, 5, 7, 9, 11];
     let data = measure_execution_time(&n, dummy_exponential, runs);
-    let (best, _all) = big_o::infer_complexity(data).unwrap();
-    assert_eq!(best.name, big_o::Name::Exponential);
+    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    assert_eq!(complexity.name, big_o::Name::Exponential);
 }
