@@ -15,7 +15,7 @@ pub struct Complexity {
     /// Approximation function parameters
     pub params: Params,
 
-    /// Relative rank
+    /// Relative rank to compare complexities
     pub rank: u32,
 }
 
@@ -115,16 +115,16 @@ fn delinearize(name: Name, gain: f64, offset: f64, residuals: f64) -> Params {
 
 fn rank(name: Name, params: Params) -> u32 {
     // Rank is similar to a degree of a corresponding polynomial:
-    // - constant: 0
+    // - constant: 0, f(x) = x ^ 0.000
     // - logarithmic: 130, empirical value k for a big x in f(x) = x ^ k
     //     base 1_000_000 log of 6 is 0.130
+    //     approx. f(x) = x ^ 0.130
     // - linear: 1_000, f(x) = x ^ 1.000
-    // - linearithmic:
+    // - linearithmic: 1_130, approx. f(x) = x ^ 1.130
     // - quadratic: 2_000, f(x) = x ^ 2.000
     // - cubic: 3_000, f(x) = x ^ 3.000
-    // - polynomial: depends on power parameter
-    // - exponential: 1_000_000, practically there is no sense in polynomial
-    //     with exponent > 1000
+    // - polynomial: depends on polynomial degree
+    // - exponential: 1_000_000, practically there is no sense in polynomial degree > 1_000.000
     match name {
         Name::Constant => 0,
         Name::Logarithmic => 130,
@@ -135,7 +135,7 @@ fn rank(name: Name, params: Params) -> u32 {
         Name::Polynomial => {
             match params.power {
                 Some(power) => std::cmp::min((1_000.0 * power) as u32, 1_000_000),
-                None => panic!("Missing power parameter"),
+                None => panic!("Polynomial is missing its power parameter"),
             }
         }
         Name::Exponential => 1_000_000,
