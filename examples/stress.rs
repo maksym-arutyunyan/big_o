@@ -60,7 +60,7 @@ fn main() {
                 .map(|i| i as f64)
                 .map(|x| (x, f(x)))
                 .collect();
-            let (best, _all) = big_o::infer_complexity(data).unwrap();
+            let (complexity, _all) = big_o::infer_complexity(data).unwrap();
 
             let (a, b) = match name {
                 big_o::Name::Constant => (0.0, offset),
@@ -69,9 +69,9 @@ fn main() {
                 _ => (gain, offset),
             };
 
-            let is_ok = name == best.name;
+            let is_ok = name == complexity.name;
             if !is_ok {
-                let line = format!("{},{:?},{},{},{:?}", is_ok, name, a, b, best.name);
+                let line = format!("{},{:?},{},{},{:?}", is_ok, name, a, b, complexity.name);
                 if let Err(e) = writeln!(file, "{}", line) {
                     eprintln!("Couldn't write to file: {}", e);
                 }

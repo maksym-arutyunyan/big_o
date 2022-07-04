@@ -18,4 +18,5 @@ assert_eq!(complexity.name, big_o::Name::Quadratic);
 assert_eq!(complexity.notation, "O(n^2)");
 assert_approx_eq!(complexity.params.gain.unwrap(), 1.0, 1e-6);
 assert_approx_eq!(complexity.params.offset.unwrap(), 0.0, 1e-6);
+assert!(complexity.rank < big_o::complexity("O(n^3)").unwrap().rank);
 ```
