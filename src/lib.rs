@@ -16,6 +16,7 @@
 //! assert_eq!(complexity.notation, "O(n^2)");
 //! assert_approx_eq!(complexity.params.gain.unwrap(), 1.0, 1e-6);
 //! assert_approx_eq!(complexity.params.offset.unwrap(), 0.0, 1e-6);
+//! assert!(complexity.rank < big_o::complexity("O(n^3)").unwrap().rank);
 //! ```
 
 mod complexity;
@@ -24,6 +25,7 @@ mod name;
 mod params;
 mod validate;
 
+pub use crate::complexity::complexity;
 pub use crate::complexity::Complexity;
 pub use crate::name::Name;
 pub use crate::params::Params;
@@ -42,6 +44,7 @@ pub use crate::params::Params;
 /// assert_eq!(complexity.notation, "O(n^2)");
 /// assert_approx_eq!(complexity.params.gain.unwrap(), 1.0, 1e-6);
 /// assert_approx_eq!(complexity.params.offset.unwrap(), 0.0, 1e-6);
+/// assert!(complexity.rank < big_o::complexity("O(n^3)").unwrap().rank);
 /// ```
 pub fn infer_complexity(
     data: Vec<(f64, f64)>,

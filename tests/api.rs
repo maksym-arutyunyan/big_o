@@ -100,6 +100,7 @@ fn infer_constant() {
     assert_eq!(complexity.notation, notation);
     assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
     assert_approx_eq!(complexity.params.offset.unwrap(), offset, EPSILON);
+    assert!(complexity.rank <= big_o::complexity("O(1)").unwrap().rank);
 }
 
 #[test]
@@ -116,6 +117,7 @@ fn infer_logarithmic() {
     assert_eq!(complexity.notation, notation);
     assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
     assert_approx_eq!(complexity.params.offset.unwrap(), offset, EPSILON);
+    assert!(complexity.rank <= big_o::complexity("O(log n)").unwrap().rank);
 }
 
 #[test]
@@ -132,6 +134,7 @@ fn infer_linear() {
     assert_eq!(complexity.notation, notation);
     assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
     assert_approx_eq!(complexity.params.offset.unwrap(), offset, EPSILON);
+    assert!(complexity.rank <= big_o::complexity("O(n)").unwrap().rank);
 }
 
 #[test]
@@ -148,6 +151,7 @@ fn infer_linearithmic() {
     assert_eq!(complexity.notation, notation);
     assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
     assert_approx_eq!(complexity.params.offset.unwrap(), offset, EPSILON);
+    assert!(complexity.rank <= big_o::complexity("O(n log n)").unwrap().rank);
 }
 
 #[test]
@@ -164,6 +168,7 @@ fn infer_quadratic() {
     assert_eq!(complexity.notation, notation);
     assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
     assert_approx_eq!(complexity.params.offset.unwrap(), offset, EPSILON);
+    assert!(complexity.rank <= big_o::complexity("O(n^2)").unwrap().rank);
 }
 
 #[test]
@@ -180,6 +185,7 @@ fn infer_cubic() {
     assert_eq!(complexity.notation, notation);
     assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
     assert_approx_eq!(complexity.params.offset.unwrap(), offset, EPSILON);
+    assert!(complexity.rank <= big_o::complexity("O(n^3)").unwrap().rank);
 }
 
 #[test]
@@ -196,6 +202,8 @@ fn infer_polynomial() {
     assert_eq!(complexity.notation, notation);
     assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
     assert_approx_eq!(complexity.params.power.unwrap(), power, EPSILON);
+    // Note: impossible to create a generic complexity O(n^m) without providing its degree.
+    assert!(complexity.rank < big_o::complexity("O(c^n)").unwrap().rank);
 }
 
 #[test]
@@ -212,4 +220,5 @@ fn infer_exponential() {
     assert_eq!(complexity.notation, notation);
     assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
     assert_approx_eq!(complexity.params.base.unwrap(), base, EPSILON);
+    assert!(complexity.rank <= big_o::complexity("O(c^n)").unwrap().rank);
 }

@@ -49,7 +49,7 @@ impl From<Name> for &str {
 }
 
 impl TryFrom<&str> for Name {
-    type Error = ();
+    type Error = &'static str;
 
     fn try_from(string: &str) -> Result<Self, Self::Error> {
         match &string.to_lowercase()[..] {
@@ -76,13 +76,13 @@ impl TryFrom<&str> for Name {
 
             "o(c^n)" => Ok(Name::Exponential),
             "exponential" => Ok(Name::Exponential),
-            _ => Err(()),
+            _ => Err("Can't convert string to Name"),
         }
     }
 }
 
 impl FromStr for Name {
-    type Err = ();
+    type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         s.try_into()

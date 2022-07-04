@@ -62,6 +62,7 @@ impl ComplexityBuilder {
         Self { name, params: None }
     }
 
+    #[allow(dead_code)]  // Used in tests.
     pub fn power(&mut self, x: f64) -> &mut Self {
         self.params = Some(Params::new().power(x).build());
         self
@@ -158,6 +159,25 @@ pub fn fit(name: Name, data: Vec<(f64, f64)>) -> Result<Complexity, &'static str
         params,
         rank,
     })
+}
+
+/// Creates `Complexity` from string.
+///
+/// # Example
+/// ```
+/// use big_o::{complexity, Name::*};
+///
+/// let linear = complexity("O(n)").unwrap();
+/// assert_eq!(linear.name, Linear);
+///
+/// let cubic = complexity("O(n^3)").unwrap();
+/// assert_eq!(cubic.name, Cubic);
+///
+/// assert!(linear.rank < cubic.rank);
+/// ```
+pub fn complexity(string: &str) -> Result<Complexity, &'static str> {
+    let name: Name = string.try_into()?;
+    Ok(crate::complexity::ComplexityBuilder::new(name).build())
 }
 
 #[cfg(test)]
