@@ -5,12 +5,12 @@ version = "0.1.2"
 edition = "2021"
 authors = ["Maksym Arutyunyan"]
 repository = "https://github.com/maksym-arutyunyan/big_o"
-homepage   = "https://github.com/maksym-arutyunyan/big_o"
+homepage = "https://github.com/maksym-arutyunyan/big_o"
 documentation = "https://docs.rs/big-o/"
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["big_o", "big-o", "asymptotic", "complexity", "analysis", "performance", "algorithm"]
-categories    = ["development-tools", "development-tools::profiling", "development-tools::testing"]
+categories = ["development-tools", "development-tools::profiling", "development-tools::testing"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
