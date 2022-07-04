@@ -100,7 +100,7 @@ impl fmt::Display for Name {
 mod tests{
     use super::*;
 
-    const NOTATION_TEST_CASES: [(&'static str, Name); 8] = [
+    const NOTATION_TEST_CASES: [(&str, Name); 8] = [
         ("O(1)", Name::Constant),
         ("O(log n)", Name::Logarithmic),
         ("O(n)", Name::Linear),
@@ -111,7 +111,7 @@ mod tests{
         ("O(c^n)", Name::Exponential),
     ];
 
-    const NAMED_TEST_CASES: [(&'static str, Name); 8] = [
+    const NAMED_TEST_CASES: [(&str, Name); 8] = [
         ("Constant", Name::Constant),
         ("Logarithmic", Name::Logarithmic),
         ("Linear", Name::Linear),
