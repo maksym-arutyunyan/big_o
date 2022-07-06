@@ -1,4 +1,4 @@
-name: Build and Test
+name: Build And Test
 
 on:
   push:
@@ -17,9 +17,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
     - name: Build
       run: cargo build --verbose
+
     - name: Test
       run: cargo test --verbose --no-fail-fast -- --test-threads=1
+
     - name: Clippy
       run: cargo clippy
