@@ -2,7 +2,7 @@ use std::fmt;
 use std::str::FromStr;
 
 /// Names of asymptotic computational complexities.
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum Name {
     Constant,
     Logarithmic,
@@ -53,29 +53,14 @@ impl TryFrom<&str> for Name {
 
     fn try_from(string: &str) -> Result<Self, Self::Error> {
         match &string.to_lowercase()[..] {
-            "o(1)" => Ok(Name::Constant),
-            "constant" => Ok(Name::Constant),
-
-            "o(log n)" => Ok(Name::Logarithmic),
-            "logarithmic" => Ok(Name::Logarithmic),
-
-            "o(n)" => Ok(Name::Linear),
-            "linear" => Ok(Name::Linear),
-
-            "o(n log n)" => Ok(Name::Linearithmic),
-            "linearithmic" => Ok(Name::Linearithmic),
-
-            "o(n^2)" => Ok(Name::Quadratic),
-            "quadratic" => Ok(Name::Quadratic),
-
-            "o(n^3)" => Ok(Name::Cubic),
-            "cubic" => Ok(Name::Cubic),
-
-            "o(n^m)" => Ok(Name::Polynomial),
-            "polynomial" => Ok(Name::Polynomial),
-
-            "o(c^n)" => Ok(Name::Exponential),
-            "exponential" => Ok(Name::Exponential),
+            "o(1)" | "constant" => Ok(Name::Constant),
+            "o(log n)" | "logarithmic" => Ok(Name::Logarithmic),
+            "o(n)" | "linear" => Ok(Name::Linear),
+            "o(n log n)" | "linearithmic" => Ok(Name::Linearithmic),
+            "o(n^2)" | "quadratic" => Ok(Name::Quadratic),
+            "o(n^3)" | "cubic" => Ok(Name::Cubic),
+            "o(n^m)" | "polynomial" => Ok(Name::Polynomial),
+            "o(c^n)" | "exponential" => Ok(Name::Exponential),
             _ => Err("Can't convert string to Name"),
         }
     }
