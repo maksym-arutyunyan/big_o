@@ -1,6 +1,6 @@
 # big_o
 
-[gh-image]: https://github.com/maksym-arutyunyan/big_o/workflows/Build%20And%20Test/badge.svg
+[gh-image]: https://github.com/maksym-arutyunyan/big_o/workflows/tests/badge.svg
 [gh-checks]: https://github.com/maksym-arutyunyan/big_o/actions/workflows/actions.yml
 [cratesio-image]: https://img.shields.io/crates/v/big_o.svg
 [cratesio]: https://crates.io/crates/big_o
