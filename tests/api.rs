@@ -222,3 +222,17 @@ fn infer_exponential() {
     assert_approx_eq!(complexity.params.base.unwrap(), base, EPSILON);
     assert!(complexity.rank <= big_o::complexity("O(c^n)").unwrap().rank);
 }
+
+#[test]
+#[should_panic]
+fn empty_input_failure() {
+    let data: Vec<(f64, f64)> = vec![];
+    let (_complexity, _all) = big_o::infer_complexity(data).unwrap();
+}
+
+#[test]
+#[should_panic]
+fn zero_input_failure() {
+    let data: Vec<(f64, f64)> = vec![(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)];
+    let (_complexity, _all) = big_o::infer_complexity(data).unwrap();
+}
