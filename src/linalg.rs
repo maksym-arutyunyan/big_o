@@ -1,7 +1,9 @@
+use crate::error::Error;
+
 /// Fits a line `f(x) = gain * x + offset` into input `data` points.
 ///
 /// Returns linear coeffs `gain`, `offset` and `residuals`.
-pub fn fit_line(data: Vec<(f64, f64)>) -> Result<(f64, f64, f64), &'static str> {
+pub fn fit_line(data: Vec<(f64, f64)>) -> Result<(f64, f64, f64), Error> {
     use nalgebra::{Dynamic, OMatrix, OVector, U2};
 
     let (xs, ys): (Vec<f64>, Vec<f64>) = data.iter().cloned().unzip();
@@ -14,7 +16,8 @@ pub fn fit_line(data: Vec<(f64, f64)>) -> Result<(f64, f64, f64), &'static str> 
     let b = OVector::<f64, Dynamic>::from_row_slice(&ys);
 
     let epsilon = 1e-10;
-    let results = lstsq::lstsq(&a, &b, epsilon)?;
+    let results =
+        lstsq::lstsq(&a, &b, epsilon).map_err(|msg| Error::LSTSQError(msg.to_string()))?;
 
     let gain = results.solution[0];
     let offset = results.solution[1];

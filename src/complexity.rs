@@ -1,3 +1,4 @@
+use crate::error::Error;
 use crate::linalg;
 use crate::name;
 use crate::name::Name;
@@ -20,7 +21,7 @@ pub struct Complexity {
 }
 
 /// Returns a calculated approximation function `f(x)`
-fn get_function(name: Name, params: Params) -> Result<Box<dyn Fn(f64) -> f64>, &'static str> {
+fn get_function(name: Name, params: Params) -> Result<Box<dyn Fn(f64) -> f64>, Error> {
     if let (Some(a), Some(b)) = match name {
         Name::Polynomial => (params.gain, params.power),
         Name::Exponential => (params.gain, params.base),
@@ -38,13 +39,13 @@ fn get_function(name: Name, params: Params) -> Result<Box<dyn Fn(f64) -> f64>, &
         };
         Ok(f)
     } else {
-        Err("No cofficients to compute f(x)")
+        Err(Error::MissingFunctionCoeffsError)
     }
 }
 
 /// Computes values of `f(x)` given `x`
 #[allow(dead_code)]
-fn compute_f(name: Name, params: Params, x: Vec<f64>) -> Result<Vec<f64>, &'static str> {
+fn compute_f(name: Name, params: Params, x: Vec<f64>) -> Result<Vec<f64>, Error> {
     let f = get_function(name, params)?;
     let y = x.into_iter().map(f).collect();
     Ok(y)
@@ -111,11 +112,7 @@ fn delinearize(name: Name, gain: f64, offset: f64) -> Params {
     }
 }
 
-fn calculate_residuals(
-    name: Name,
-    params: Params,
-    data: Vec<(f64, f64)>,
-) -> Result<f64, &'static str> {
+fn calculate_residuals(name: Name, params: Params, data: Vec<(f64, f64)>) -> Result<f64, Error> {
     let f = get_function(name, params)?;
     let residuals = data.into_iter().map(|(x, y)| (y - f(x)).abs()).sum();
 
@@ -150,7 +147,7 @@ fn rank(name: Name, params: Params) -> u32 {
 }
 
 /// Fits a function of given complexity into input data.
-pub fn fit(name: Name, data: Vec<(f64, f64)>) -> Result<Complexity, &'static str> {
+pub fn fit(name: Name, data: Vec<(f64, f64)>) -> Result<Complexity, Error> {
     let linearized = data
         .clone()
         .into_iter()
@@ -189,7 +186,7 @@ pub fn fit(name: Name, data: Vec<(f64, f64)>) -> Result<Complexity, &'static str
 ///
 /// assert!(linear.rank < cubic.rank);
 /// ```
-pub fn complexity(string: &str) -> Result<Complexity, &'static str> {
+pub fn complexity(string: &str) -> Result<Complexity, Error> {
     let name: Name = string.try_into()?;
     Ok(crate::complexity::ComplexityBuilder::new(name).build())
 }
