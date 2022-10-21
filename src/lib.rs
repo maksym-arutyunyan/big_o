@@ -20,6 +20,7 @@
 //! ```
 
 mod complexity;
+mod error;
 mod linalg;
 mod name;
 mod params;
@@ -27,6 +28,7 @@ mod validate;
 
 pub use crate::complexity::complexity;
 pub use crate::complexity::Complexity;
+pub use crate::error::Error;
 pub use crate::name::Name;
 pub use crate::params::Params;
 
@@ -46,9 +48,7 @@ pub use crate::params::Params;
 /// assert_approx_eq!(complexity.params.offset.unwrap(), 0.0, 1e-6);
 /// assert!(complexity.rank < big_o::complexity("O(n^3)").unwrap().rank);
 /// ```
-pub fn infer_complexity(
-    data: Vec<(f64, f64)>,
-) -> Result<(Complexity, Vec<Complexity>), &'static str> {
+pub fn infer_complexity(data: Vec<(f64, f64)>) -> Result<(Complexity, Vec<Complexity>), Error> {
     let mut all_fitted: Vec<Complexity> = Vec::new();
     for name in name::all_names() {
         let complexity = complexity::fit(name, data.clone())?;

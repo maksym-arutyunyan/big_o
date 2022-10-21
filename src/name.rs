@@ -1,3 +1,4 @@
+use crate::error::Error;
 use std::fmt;
 use std::str::FromStr;
 
@@ -49,7 +50,7 @@ impl From<Name> for &str {
 }
 
 impl TryFrom<&str> for Name {
-    type Error = &'static str;
+    type Error = Error;
 
     fn try_from(string: &str) -> Result<Self, Self::Error> {
         match &string.to_lowercase()[..] {
@@ -61,13 +62,13 @@ impl TryFrom<&str> for Name {
             "o(n^3)" | "cubic" => Ok(Name::Cubic),
             "o(n^m)" | "polynomial" => Ok(Name::Polynomial),
             "o(c^n)" | "exponential" => Ok(Name::Exponential),
-            _ => Err("Can't convert string to Name"),
+            _ => Err(Error::ParseNotationError),
         }
     }
 }
 
 impl FromStr for Name {
-    type Err = &'static str;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         s.try_into()
@@ -80,9 +81,8 @@ impl fmt::Display for Name {
     }
 }
 
-
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
 
     const NOTATION_TEST_CASES: [(&str, Name); 8] = [

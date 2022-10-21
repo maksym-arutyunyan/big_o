@@ -1,6 +1,6 @@
+use std::fmt::Write as _;
 use std::time::Instant;
-use std::{thread, time};
-use std::fmt::Write as _; // import without risk of name clashing
+use std::{thread, time}; // import without risk of name clashing
 
 #[allow(dead_code)]
 fn write_csv(data: &Vec<(f64, f64)>, path: &str) {
