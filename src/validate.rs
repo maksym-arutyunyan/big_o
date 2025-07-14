@@ -49,7 +49,7 @@ fn is_degraded(name: Name, p: &Params) -> Option<Name> {
 pub fn is_valid(complexity: &Complexity) -> bool {
     let p = &complexity.params;
     // Missing residuals.
-    if !p.residuals.unwrap_or(std::f64::NAN).is_finite() {
+    if !p.residuals.unwrap_or(f64::NAN).is_finite() {
         return false;
     }
     // Negative gain.
