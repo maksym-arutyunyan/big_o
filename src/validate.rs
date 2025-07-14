@@ -130,7 +130,7 @@ mod tests {
     fn exponential_degraded_to_constant_base_1() {
         // f(x) = gain * 1 ^ x = gain
         assert_eq!(
-            is_degraded(Name::Exponential, &Params::new().base(0.0).build()),
+            is_degraded(Name::Exponential, &Params::new().base(1.0).build()),
             Some(Name::Constant)
         );
     }
