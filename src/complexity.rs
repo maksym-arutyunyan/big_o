@@ -140,7 +140,7 @@ fn rank(name: Name, params: Params) -> u32 {
         Name::Cubic => 3_000,
         Name::Polynomial => match params.power {
             Some(power) => std::cmp::min((1_000.0 * power) as u32, 1_000_000),
-            None => panic!("Polynomial is missing its power parameter"),
+            None => 1_000_000,
         },
         Name::Exponential => 1_000_000,
     }

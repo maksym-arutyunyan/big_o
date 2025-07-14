@@ -236,3 +236,11 @@ fn zero_input_failure() {
     let data: Vec<(f64, f64)> = vec![(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)];
     let (_complexity, _all) = big_o::infer_complexity(data).unwrap();
 }
+
+#[test]
+fn parse_polynomial_notation() {
+    let complexity = big_o::complexity("O(n^m)").unwrap();
+    assert_eq!(complexity.name, big_o::Name::Polynomial);
+    assert_eq!(complexity.notation, "O(n^m)");
+    assert_eq!(complexity.rank, 1_000_000);
+}
