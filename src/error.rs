@@ -10,9 +10,9 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::LSTSQError(msg) => write!(f, "LSTQS failed: {msg}"),
+            Error::LSTSQError(msg) => write!(f, "LSTSQ failed: {msg}"),
             Error::ParseNotationError => write!(f, "Can't convert string to Name"),
-            Error::MissingFunctionCoeffsError => write!(f, "No cofficients to compute f(x)"),
+            Error::MissingFunctionCoeffsError => write!(f, "No coefficients to compute f(x)"),
         }
     }
 }
