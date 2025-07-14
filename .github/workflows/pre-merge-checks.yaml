@@ -1,13 +1,15 @@
-name: Rust
+name: Pre-Merge Checks
 
 on:
-  push:
-    branches: [ main, dev ]
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+  workflow_dispatch: # Allows manual trigger for any branch
 
 env:
+  RUST_BACKTRACE: 1
   CARGO_TERM_COLOR: always
+  TERM: xterm-256color
 
 jobs:
   build:
