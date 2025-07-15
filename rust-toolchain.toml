@@ -1,2 +1,2 @@
 [toolchain]
-channel = "stable" # Use the same version as in `.github/workflows/workflow.yaml`.
+channel = "stable" # Use the same version as in `.github/workflows/*.yaml`.
