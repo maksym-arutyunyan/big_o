@@ -8,6 +8,8 @@ pub enum Error {
     ParseNotationError,
     /// Returned when not all coefficients for the approximation function are provided.
     MissingFunctionCoeffsError,
+    /// Returned when a polynomial complexity lacks a power parameter.
+    MissingPolynomialPower,
 }
 
 impl fmt::Display for Error {
@@ -16,6 +18,7 @@ impl fmt::Display for Error {
             Error::LSTSQError(msg) => write!(f, "LSTSQ failed: {msg}"),
             Error::ParseNotationError => write!(f, "Can't convert string to Name"),
             Error::MissingFunctionCoeffsError => write!(f, "No coefficients to compute f(x)"),
+            Error::MissingPolynomialPower => write!(f, "Polynomial power parameter is missing"),
         }
     }
 }
