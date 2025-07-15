@@ -81,18 +81,18 @@ impl ComplexityBuilder {
         self
     }
 
-    pub fn build(&self) -> Complexity {
+    pub fn build(&self) -> Result<Complexity, Error> {
         let mut params = Params::new().build();
         if let Some(p) = &self.params {
             params = p.clone();
         }
-        let rank = rank(self.name, params.clone());
-        Complexity {
+        let rank = rank(self.name, params.clone())?;
+        Ok(Complexity {
             name: self.name,
             notation: name::notation(self.name),
             params,
             rank,
-        }
+        })
     }
 }
 
@@ -133,7 +133,7 @@ fn calculate_residuals(name: Name, params: Params, data: &[(f64, f64)]) -> Resul
     Ok(residuals)
 }
 
-fn rank(name: Name, params: Params) -> u32 {
+fn rank(name: Name, params: Params) -> Result<u32, Error> {
     // Rank is similar to a degree of a corresponding polynomial:
     // - constant: 0, f(x) = x ^ 0.000
     // - logarithmic: 130, empirical value k for a big x in f(x) = x ^ k
@@ -146,17 +146,17 @@ fn rank(name: Name, params: Params) -> u32 {
     // - polynomial: depends on polynomial degree
     // - exponential: 1_000_000, practically there is no sense in polynomial degree > 1_000.000
     match name {
-        Name::Constant => 0,
-        Name::Logarithmic => 130,
-        Name::Linear => 1_000,
-        Name::Linearithmic => 1_130,
-        Name::Quadratic => 2_000,
-        Name::Cubic => 3_000,
+        Name::Constant => Ok(0),
+        Name::Logarithmic => Ok(130),
+        Name::Linear => Ok(1_000),
+        Name::Linearithmic => Ok(1_130),
+        Name::Quadratic => Ok(2_000),
+        Name::Cubic => Ok(3_000),
         Name::Polynomial => match params.power {
-            Some(power) => std::cmp::min((1_000.0 * power) as u32, 1_000_000),
-            None => panic!("Polynomial is missing its power parameter"),
+            Some(power) => Ok(std::cmp::min((1_000.0 * power) as u32, 1_000_000)),
+            None => Err(Error::MissingPolynomialPower),
         },
-        Name::Exponential => 1_000_000,
+        Name::Exponential => Ok(1_000_000),
     }
 }
 
@@ -176,7 +176,7 @@ pub fn fit(name: Name, data: &[(f64, f64)]) -> Result<Complexity, Error> {
         residuals: Some(residuals),
         ..params
     };
-    let rank = rank(name, params.clone());
+    let rank = rank(name, params.clone())?;
 
     Ok(Complexity {
         name,
@@ -202,45 +202,55 @@ pub fn fit(name: Name, data: &[(f64, f64)]) -> Result<Complexity, Error> {
 /// ```
 pub fn complexity(string: &str) -> Result<Complexity, Error> {
     let name: Name = string.try_into()?;
-    Ok(crate::complexity::ComplexityBuilder::new(name).build())
+    crate::complexity::ComplexityBuilder::new(name).build()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Error;
 
     fn constant() -> Complexity {
-        ComplexityBuilder::new(Name::Constant).build()
+        ComplexityBuilder::new(Name::Constant).build().unwrap()
     }
 
     fn logarithmic() -> Complexity {
-        ComplexityBuilder::new(Name::Logarithmic).build()
+        ComplexityBuilder::new(Name::Logarithmic).build().unwrap()
     }
 
     fn linear() -> Complexity {
-        ComplexityBuilder::new(Name::Linear).build()
+        ComplexityBuilder::new(Name::Linear).build().unwrap()
     }
 
     fn linearithmic() -> Complexity {
-        ComplexityBuilder::new(Name::Linearithmic).build()
+        ComplexityBuilder::new(Name::Linearithmic).build().unwrap()
     }
 
     fn quadratic() -> Complexity {
-        ComplexityBuilder::new(Name::Quadratic).build()
+        ComplexityBuilder::new(Name::Quadratic).build().unwrap()
     }
 
     fn cubic() -> Complexity {
-        ComplexityBuilder::new(Name::Cubic).build()
+        ComplexityBuilder::new(Name::Cubic).build().unwrap()
     }
 
     fn exponential() -> Complexity {
-        ComplexityBuilder::new(Name::Exponential).build()
+        ComplexityBuilder::new(Name::Exponential).build().unwrap()
     }
 
     fn polynomial(power: f64) -> Complexity {
         ComplexityBuilder::new(Name::Polynomial)
             .power(power)
             .build()
+            .unwrap()
+    }
+
+    #[test]
+    fn polynomial_missing_power_error() {
+        let err = ComplexityBuilder::new(Name::Polynomial)
+            .build()
+            .unwrap_err();
+        assert!(matches!(err, Error::MissingPolynomialPower));
     }
 
     #[test]
