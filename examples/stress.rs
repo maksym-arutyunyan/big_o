@@ -4,7 +4,6 @@ use std::io::prelude::*;
 
 fn main() {
     let mut file = OpenOptions::new()
-        .write(true)
         .append(true)
         .open("./examples/stress_log.csv")
         .unwrap();
