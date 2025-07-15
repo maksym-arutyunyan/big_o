@@ -51,7 +51,7 @@ fn regression_0001() {
         (48.0, 2178477.0),
         (49.0, 2223861.0),
     ];
-    let (complexity, all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, all) = big_o::infer_complexity(&data).unwrap();
     assert_eq!(
         complexity.name,
         big_o::Name::Linear,

@@ -60,7 +60,7 @@ fn infer_each() {
 
     for (f, name, notation, params) in test_cases {
         let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-        let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+        let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
         assert_eq!(complexity.name, name);
         assert_eq!(complexity.notation, notation);
         assert_approx_eq!(
@@ -94,7 +94,7 @@ fn infer_constant() {
     let f = Box::new(|x: f64| gain * x + offset);
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
 
     assert_eq!(complexity.name, name);
     assert_eq!(complexity.notation, notation);
@@ -111,7 +111,7 @@ fn infer_logarithmic() {
     let f = Box::new(|x: f64| gain * x.ln() + offset);
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
 
     assert_eq!(complexity.name, name);
     assert_eq!(complexity.notation, notation);
@@ -128,7 +128,7 @@ fn infer_linear() {
     let f = Box::new(|x: f64| gain * x + offset);
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
 
     assert_eq!(complexity.name, name);
     assert_eq!(complexity.notation, notation);
@@ -145,7 +145,7 @@ fn infer_linearithmic() {
     let f = Box::new(|x: f64| gain * x * x.ln() + offset);
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
 
     assert_eq!(complexity.name, name);
     assert_eq!(complexity.notation, notation);
@@ -162,7 +162,7 @@ fn infer_quadratic() {
     let f = Box::new(|x: f64| gain * x.powi(2) + offset);
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
 
     assert_eq!(complexity.name, name);
     assert_eq!(complexity.notation, notation);
@@ -179,7 +179,7 @@ fn infer_cubic() {
     let f = Box::new(|x: f64| gain * x.powi(3) + offset);
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
 
     assert_eq!(complexity.name, name);
     assert_eq!(complexity.notation, notation);
@@ -196,7 +196,7 @@ fn infer_polynomial() {
     let f = Box::new(|x: f64| gain * x.powf(power));
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
 
     assert_eq!(complexity.name, name);
     assert_eq!(complexity.notation, notation);
@@ -214,7 +214,7 @@ fn infer_exponential() {
     let f = Box::new(|x: f64| gain * base.powf(x));
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
 
     assert_eq!(complexity.name, name);
     assert_eq!(complexity.notation, notation);
@@ -227,12 +227,12 @@ fn infer_exponential() {
 #[should_panic]
 fn empty_input_failure() {
     let data: Vec<(f64, f64)> = vec![];
-    let (_complexity, _all) = big_o::infer_complexity(data).unwrap();
+    let (_complexity, _all) = big_o::infer_complexity(&data).unwrap();
 }
 
 #[test]
 #[should_panic]
 fn zero_input_failure() {
     let data: Vec<(f64, f64)> = vec![(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)];
-    let (_complexity, _all) = big_o::infer_complexity(data).unwrap();
+    let (_complexity, _all) = big_o::infer_complexity(&data).unwrap();
 }

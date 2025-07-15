@@ -59,9 +59,9 @@ fn get_function(name: Name, params: Params) -> Result<Box<dyn Fn(f64) -> f64>, E
 
 /// Computes values of `f(x)` given `x`
 #[allow(dead_code)]
-fn compute_f(name: Name, params: Params, x: Vec<f64>) -> Result<Vec<f64>, Error> {
+fn compute_f(name: Name, params: Params, x: &[f64]) -> Result<Vec<f64>, Error> {
     let f = get_function(name, params)?;
-    let y = x.into_iter().map(f).collect();
+    let y = x.iter().copied().map(f).collect();
     Ok(y)
 }
 
@@ -126,9 +126,9 @@ fn delinearize(name: Name, gain: f64, offset: f64) -> Params {
     }
 }
 
-fn calculate_residuals(name: Name, params: Params, data: Vec<(f64, f64)>) -> Result<f64, Error> {
+fn calculate_residuals(name: Name, params: Params, data: &[(f64, f64)]) -> Result<f64, Error> {
     let f = get_function(name, params)?;
-    let residuals = data.into_iter().map(|(x, y)| (y - f(x)).abs()).sum();
+    let residuals = data.iter().map(|(x, y)| (*y - f(*x)).abs()).sum();
 
     Ok(residuals)
 }
@@ -161,14 +161,14 @@ fn rank(name: Name, params: Params) -> u32 {
 }
 
 /// Fits a function of given complexity into input data.
-pub fn fit(name: Name, data: Vec<(f64, f64)>) -> Result<Complexity, Error> {
-    let linearized = data
-        .clone()
-        .into_iter()
+pub fn fit(name: Name, data: &[(f64, f64)]) -> Result<Complexity, Error> {
+    let linearized: Vec<(f64, f64)> = data
+        .iter()
+        .copied()
         .map(|(x, y)| linearize(name, x, y))
         .collect();
 
-    let (gain, offset, _residuals) = linalg::fit_line(linearized)?;
+    let (gain, offset, _residuals) = linalg::fit_line(&linearized)?;
     let params = delinearize(name, gain, offset);
     // Calculate delinearized residuals.
     let residuals = calculate_residuals(name, params.clone(), data)?;

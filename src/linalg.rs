@@ -3,7 +3,7 @@ use crate::error::Error;
 /// Fits a line `f(x) = gain * x + offset` into input `data` points.
 ///
 /// Returns linear coeffs `gain`, `offset` and `residuals`.
-pub fn fit_line(data: Vec<(f64, f64)>) -> Result<(f64, f64, f64), Error> {
+pub fn fit_line(data: &[(f64, f64)]) -> Result<(f64, f64, f64), Error> {
     use nalgebra::{Dynamic, OMatrix, OVector, U2};
 
     let (xs, ys): (Vec<f64>, Vec<f64>) = data.iter().cloned().unzip();
@@ -37,7 +37,7 @@ mod tests {
     fn test_fit_line_1() {
         let data = vec![(0., 0.), (1., 1.), (2., 2.), (3., 3.)];
 
-        let (gain, offset, residuals) = fit_line(data).unwrap();
+        let (gain, offset, residuals) = fit_line(&data).unwrap();
 
         assert_approx_eq!(gain, 1., EPSILON);
         assert_approx_eq!(offset, 0., EPSILON);
@@ -48,7 +48,7 @@ mod tests {
     fn test_fit_line_2() {
         let data = vec![(0., 7.), (1., 17.), (2., 27.), (3., 37.)];
 
-        let (gain, offset, residuals) = fit_line(data).unwrap();
+        let (gain, offset, residuals) = fit_line(&data).unwrap();
 
         assert_approx_eq!(gain, 10., EPSILON);
         assert_approx_eq!(offset, 7., EPSILON);
