@@ -3,7 +3,7 @@ use std::fmt;
 use std::str::FromStr;
 
 /// Names of asymptotic computational complexities.
-#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Name {
     Constant,
     Logarithmic,
