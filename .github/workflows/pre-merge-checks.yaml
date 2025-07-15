@@ -17,19 +17,111 @@ jobs:
     strategy:
       matrix:
         toolchain:
-        - stable
-        - beta
-        - nightly
+          - stable
+          - beta
+          - nightly
 
     steps:
-    - uses: actions/checkout@v3
-    - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }} && rustup component add clippy
+      - uses: actions/checkout@v3
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }} && rustup component add clippy rustfmt
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.toolchain }}-
+            ${{ runner.os }}-cargo-
 
-    - name: Build
-      run: cargo build --verbose
+      - name: Build
+        run: cargo build --verbose
 
-    - name: Test
-      run: cargo test --verbose --no-fail-fast -- --test-threads=1 --color always
+  test:
+    needs: build
+    runs-on: ubuntu-latest
 
-    - name: Clippy
-      run: cargo clippy --all-targets --all --tests --all-features -- -Dclippy::all 
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update stable && rustup default stable && rustup component add clippy rustfmt
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-test-
+            ${{ runner.os }}-cargo-
+
+      - name: Test
+        run: cargo test --verbose --no-fail-fast -- --test-threads=1 --color always
+
+  clippy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update stable && rustup default stable && rustup component add clippy rustfmt
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-clippy-
+            ${{ runner.os }}-cargo-
+
+      - name: Clippy
+        run: cargo clippy --all-targets --all --tests --all-features -- -Dclippy::all
+
+  fmt:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update stable && rustup default stable && rustup component add clippy rustfmt
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-fmt-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-fmt-
+            ${{ runner.os }}-cargo-
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+  keepsorted:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update stable && rustup default stable && rustup component add clippy rustfmt
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-keepsorted-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-keepsorted-
+            ${{ runner.os }}-cargo-
+
+      - name: Keepsorted
+        run: |
+          git ls-files -co --exclude-standard \
+            | grep -vE '^misc/|^tests/|^README.md' \
+            | xargs -I {} bash -c "keepsorted '{}' --features gitignore,rust_derive_canonical" {}
+          git diff --exit-code
