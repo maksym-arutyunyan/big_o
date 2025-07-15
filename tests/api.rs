@@ -231,8 +231,15 @@ fn empty_input_failure() {
 }
 
 #[test]
-#[should_panic]
-fn zero_input_failure() {
+fn zero_input_error() {
     let data: Vec<(f64, f64)> = vec![(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)];
-    let (_complexity, _all) = big_o::infer_complexity(&data).unwrap();
+    let err = big_o::infer_complexity(&data).unwrap_err();
+    assert!(matches!(err, big_o::Error::InvalidInput(_)));
+}
+
+#[test]
+fn negative_input_error() {
+    let data: Vec<(f64, f64)> = vec![(-1.0, 1.0), (-2.0, 4.0)];
+    let err = big_o::infer_complexity(&data).unwrap_err();
+    assert!(matches!(err, big_o::Error::InvalidInput(_)));
 }
