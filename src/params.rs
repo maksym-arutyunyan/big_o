@@ -15,10 +15,30 @@
 /// ```
 #[derive(Clone, Debug)]
 pub struct Params {
+    /// Multiplicative coefficient of the approximation function.
+    ///
+    /// Examples:
+    /// - `f(x) = gain * x + offset`
+    /// - `f(x) = gain * base.powf(x)`
     pub gain: Option<f64>,
+
+    /// Constant offset of the approximation function.
+    ///
+    /// Example: in `f(x) = gain * x + offset` this is the `offset` term.
     pub offset: Option<f64>,
+
+    /// Sum of absolute residuals between the measured data and the
+    /// approximation.
     pub residuals: Option<f64>,
+
+    /// Exponent of a polynomial function.
+    ///
+    /// Example: `f(x) = gain * x.powf(power)`
     pub power: Option<f64>,
+
+    /// Base of an exponential function.
+    ///
+    /// Example: `f(x) = gain * base.powf(x)`
     pub base: Option<f64>,
 }
 

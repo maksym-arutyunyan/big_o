@@ -4,19 +4,33 @@ use crate::name;
 use crate::name::Name;
 use crate::params::Params;
 
-/// A structure to describe asymptotic computational complexity
+/// Result of fitting an asymptotic computational complexity to a set of
+/// measurements.
+///
+/// `Complexity` instances are typically created via [`infer_complexity`] or
+/// the [`complexity`] helper and can be compared using their [`rank`] field.
+///
+/// # Example
+/// ```
+/// # use big_o::Name;
+/// let linear = big_o::complexity("O(n)").unwrap();
+/// let quadratic = big_o::complexity("O(n^2)").unwrap();
+/// assert_eq!(linear.name, Name::Linear);
+/// assert!(linear.rank < quadratic.rank);
+/// ```
 #[derive(Clone, Debug)]
 pub struct Complexity {
-    /// Human-readable name
+    /// Human-readable name of the complexity model.
     pub name: Name,
 
-    /// Big O notation
+    /// String representation in Big&nbsp;O notation.
     pub notation: &'static str,
 
-    /// Approximation function parameters
+    /// Parameters of the fitted approximation function.
     pub params: Params,
 
-    /// Relative rank to compare complexities
+    /// Relative rank used to compare complexities.
+    /// A lower value means a better asymptotic behaviour.
     pub rank: u32,
 }
 
