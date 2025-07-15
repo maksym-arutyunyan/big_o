@@ -31,3 +31,7 @@ assert_approx_eq!(complexity.params.gain.unwrap(), 1.0, 1e-6);
 assert_approx_eq!(complexity.params.offset.unwrap(), 0.0, 1e-6);
 assert!(complexity.rank < big_o::complexity("O(n^3)").unwrap().rank);
 ```
+
+`infer_complexity` returns an [`Error::NoValidComplexity`](src/error.rs) when no
+complexity model fits the provided data, such as when the input is empty or all
+values are zero.

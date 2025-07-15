@@ -10,6 +10,8 @@ pub enum Error {
     MissingFunctionCoeffsError,
     /// Returned when a polynomial complexity lacks a power parameter.
     MissingPolynomialPower,
+    /// Returned when no complexity model fits the input data.
+    NoValidComplexity,
 }
 
 impl fmt::Display for Error {
@@ -19,6 +21,7 @@ impl fmt::Display for Error {
             Error::ParseNotationError => write!(f, "Can't convert string to Name"),
             Error::MissingFunctionCoeffsError => write!(f, "No coefficients to compute f(x)"),
             Error::MissingPolynomialPower => write!(f, "Polynomial power parameter is missing"),
+            Error::NoValidComplexity => write!(f, "No valid complexity could be inferred"),
         }
     }
 }
