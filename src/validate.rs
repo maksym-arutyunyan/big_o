@@ -1,6 +1,7 @@
 use crate::complexity::Complexity;
 use crate::name::Name;
 use crate::params::Params;
+use crate::Error;
 use float_cmp::approx_eq;
 
 const EPSILON: f64 = 1e-5;
@@ -62,6 +63,20 @@ pub fn is_valid(complexity: &Complexity) -> bool {
     }
 
     true
+}
+
+/// Validates input data for a given complexity model.
+pub fn check_input(name: Name, data: &[(f64, f64)]) -> Result<(), Error> {
+    let requires_positive = matches!(
+        name,
+        Name::Logarithmic | Name::Linearithmic | Name::Polynomial
+    );
+    if requires_positive {
+        if data.iter().any(|(x, _)| *x <= 0.0) {
+            return Err(Error::InvalidInput("x values must be positive".to_string()));
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]

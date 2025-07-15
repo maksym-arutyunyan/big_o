@@ -3,6 +3,7 @@ use crate::linalg;
 use crate::name;
 use crate::name::Name;
 use crate::params::Params;
+use crate::validate;
 
 /// Result of fitting an asymptotic computational complexity to a set of
 /// measurements.
@@ -162,6 +163,7 @@ fn rank(name: Name, params: Params) -> Result<u32, Error> {
 
 /// Fits a function of given complexity into input data.
 pub fn fit(name: Name, data: &[(f64, f64)]) -> Result<Complexity, Error> {
+    validate::check_input(name, data)?;
     let linearized: Vec<(f64, f64)> = data
         .iter()
         .copied()

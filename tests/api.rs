@@ -231,6 +231,12 @@ fn empty_input_failure() {
 }
 
 #[test]
+fn negative_input_error() {
+    let data: Vec<(f64, f64)> = vec![(-1.0, 1.0), (-2.0, 4.0)];
+    let err = big_o::infer_complexity(&data).unwrap_err();
+    assert!(matches!(err, big_o::Error::InvalidInput(_)));
+}
+
 fn zero_input_failure() {
     let data: Vec<(f64, f64)> = vec![(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)];
     let err = big_o::infer_complexity(&data).unwrap_err();
