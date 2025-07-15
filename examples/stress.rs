@@ -59,7 +59,7 @@ fn main() {
                 .map(|i| i as f64)
                 .map(|x| (x, f(x)))
                 .collect();
-            let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+            let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
 
             let (a, b) = match name {
                 big_o::Name::Constant => (0.0, offset),

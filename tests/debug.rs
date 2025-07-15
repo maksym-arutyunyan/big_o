@@ -10,7 +10,7 @@ fn infer_exponential_stress_1() {
     let f = Box::new(|x: f64| gain * base.powf(x));
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
 
     println!("{:?}", complexity.params);
 
@@ -28,7 +28,7 @@ fn infer_exponential_stress_2() {
     let f = Box::new(|x: f64| gain * base.powf(x));
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
 
     println!("{:?}", complexity.params);
 
@@ -46,7 +46,7 @@ fn infer_logarithmic_stress_1() {
     let f = Box::new(|x: f64| gain * x.ln() + offset);
 
     let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(data).unwrap();
+    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
 
     println!("{:?}", complexity.params);
 
