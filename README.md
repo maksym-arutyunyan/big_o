@@ -1,7 +1,7 @@
 # big_o
 
-[gh-image]: https://github.com/maksym-arutyunyan/big_o/workflows/Rust/badge.svg
-[gh-checks]: https://github.com/maksym-arutyunyan/big_o/actions/workflows/rust.yml
+[gh-image]: https://github.com/maksym-arutyunyan/big_o/workflows/CI/badge.svg
+[gh-checks]: https://github.com/maksym-arutyunyan/big_o/actions/workflows/pre-merge-checks.yaml
 [cratesio-image]: https://img.shields.io/crates/v/big_o.svg
 [cratesio]: https://crates.io/crates/big_o
 [docsrs-image]: https://docs.rs/big_o/badge.svg
@@ -31,3 +31,7 @@ assert_approx_eq!(complexity.params.gain.unwrap(), 1.0, 1e-6);
 assert_approx_eq!(complexity.params.offset.unwrap(), 0.0, 1e-6);
 assert!(complexity.rank < big_o::complexity("O(n^3)").unwrap().rank);
 ```
+
+`infer_complexity` returns an [`Error::NoValidComplexity`](src/error.rs) when no
+complexity model fits the provided data, such as when the input is empty or all
+values are zero.

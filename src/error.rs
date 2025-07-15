@@ -12,6 +12,8 @@ pub enum Error {
     MissingPolynomialPower,
     /// Returned when input data contains invalid values.
     InvalidInput(String),
+    /// Returned when no complexity model fits the input data.
+    NoValidComplexity,
 }
 
 impl fmt::Display for Error {
@@ -22,6 +24,7 @@ impl fmt::Display for Error {
             Error::MissingFunctionCoeffsError => write!(f, "No coefficients to compute f(x)"),
             Error::MissingPolynomialPower => write!(f, "Polynomial power parameter is missing"),
             Error::InvalidInput(msg) => write!(f, "Invalid input: {msg}"),
+            Error::NoValidComplexity => write!(f, "No valid complexity could be inferred"),
         }
     }
 }
