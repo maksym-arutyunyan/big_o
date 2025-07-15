@@ -1,0 +1,2 @@
+[toolchain]
+channel = "stable" # Use the same version as in `.github/workflows/workflow.yaml`.

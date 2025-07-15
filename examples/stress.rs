@@ -14,7 +14,7 @@ fn main() {
     for i in 0..runs {
         if i % 1_000 == 0 {
             let percent = 100 * i / runs;
-            println!("Processed {} out of {} ({} %)", i, runs, percent);
+            println!("Processed {i} out of {runs} ({percent} %)");
         }
         let gain: f64 = rng.gen_range(0.0..100.0);
         let offset: f64 = rng.gen_range(0.0..100.0);
@@ -71,8 +71,8 @@ fn main() {
             let is_ok = name == complexity.name;
             if !is_ok {
                 let line = format!("{},{:?},{},{},{:?}", is_ok, name, a, b, complexity.name);
-                if let Err(e) = writeln!(file, "{}", line) {
-                    eprintln!("Couldn't write to file: {}", e);
+                if let Err(e) = writeln!(file, "{line}") {
+                    eprintln!("Couldn't write to file: {e}");
                 }
             }
         }

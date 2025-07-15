@@ -18,7 +18,7 @@ cargo test --release
 test_release_status=$?
 
 # Run clippy and capture its exit status
-cargo clippy --all-targets -- -D warnings
+cargo clippy --all-targets --all --tests --all-features -- -Dclippy::all
 clippy_status=$?
 
 # Run fmt and capture its exit status
