@@ -30,12 +30,18 @@ pub use crate::params::Params;
 /// assert!(complexity.rank < big_o::complexity("O(n^3)").unwrap().rank);
 /// ```
 pub fn infer_complexity(data: &[(f64, f64)]) -> Result<(Complexity, Vec<Complexity>), Error> {
+    if data.is_empty() || data.iter().all(|(x, y)| *x == 0.0 && *y == 0.0) {
+        return Err(Error::NoValidComplexity);
+    }
     let mut all_fitted: Vec<Complexity> = Vec::new();
     for name in name::all_names() {
         let complexity = complexity::fit(name, data)?;
         if validate::is_valid(&complexity) {
             all_fitted.push(complexity);
         }
+    }
+    if all_fitted.is_empty() {
+        return Err(Error::NoValidComplexity);
     }
     all_fitted.sort_by(|a, b| a.params.residuals.partial_cmp(&b.params.residuals).unwrap());
     let best_complexity = all_fitted[0].clone();

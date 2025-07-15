@@ -59,6 +59,8 @@ fn main() {
                 .map(|i| i as f64)
                 .map(|x| (x, f(x)))
                 .collect();
+            // `infer_complexity` may fail if the generated data is invalid
+            // and return `Error::NoValidComplexity`.
             let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
 
             let (a, b) = match name {

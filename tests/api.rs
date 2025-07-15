@@ -224,15 +224,15 @@ fn infer_exponential() {
 }
 
 #[test]
-#[should_panic]
 fn empty_input_failure() {
     let data: Vec<(f64, f64)> = vec![];
-    let (_complexity, _all) = big_o::infer_complexity(&data).unwrap();
+    let err = big_o::infer_complexity(&data).unwrap_err();
+    assert!(matches!(err, big_o::Error::NoValidComplexity));
 }
 
 #[test]
-#[should_panic]
 fn zero_input_failure() {
     let data: Vec<(f64, f64)> = vec![(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)];
-    let (_complexity, _all) = big_o::infer_complexity(&data).unwrap();
+    let err = big_o::infer_complexity(&data).unwrap_err();
+    assert!(matches!(err, big_o::Error::NoValidComplexity));
 }
