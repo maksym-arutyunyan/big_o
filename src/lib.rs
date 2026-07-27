@@ -1,6 +1,7 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 
 mod complexity;
+mod data;
 mod error;
 mod linalg;
 mod name;
@@ -14,6 +15,17 @@ pub use crate::name::Name;
 pub use crate::params::Params;
 
 /// Infers complexity of given data points, returns the best and all the fitted complexities.
+///
+/// Repeated measurements of the same input size are collapsed to their median
+/// before fitting, so an occasional descheduled run does not steer the result.
+/// Non-finite measurements are dropped. A model that cannot describe the
+/// remaining data — a logarithmic one given `x = 0`, say — is skipped, and the
+/// models that can still compete.
+///
+/// # Errors
+/// Returns [`Error::NotEnoughData`] if fewer than three distinct input sizes
+/// survive that preparation, and [`Error::NoValidComplexity`] if no model fits
+/// what does.
 ///
 /// # Example
 /// ```
@@ -30,21 +42,28 @@ pub use crate::params::Params;
 /// assert!(complexity.rank < big_o::complexity("O(n^3)").unwrap().rank);
 /// ```
 pub fn infer_complexity(data: &[(f64, f64)]) -> Result<(Complexity, Vec<Complexity>), Error> {
-    if data.is_empty() || data.iter().all(|(x, y)| *x == 0.0 && *y == 0.0) {
-        return Err(Error::NoValidComplexity);
+    let sample = data::prepare(data);
+    if sample.points().len() < data::MIN_POINTS {
+        return Err(Error::NotEnoughData {
+            needed: data::MIN_POINTS,
+            got: sample.points().len(),
+        });
     }
-    let mut all_fitted: Vec<Complexity> = Vec::new();
-    for name in name::all_names() {
-        let complexity = complexity::fit(name, data)?;
-        if validate::is_valid(&complexity) {
-            all_fitted.push(complexity);
-        }
-    }
-    if all_fitted.is_empty() {
-        return Err(Error::NoValidComplexity);
-    }
-    all_fitted.sort_by(|a, b| a.params.residuals.partial_cmp(&b.params.residuals).unwrap());
-    let best_complexity = all_fitted[0].clone();
+
+    let mut all_fitted: Vec<Complexity> = name::all_names()
+        .into_iter()
+        .filter_map(|name| complexity::fit(name, &sample))
+        .filter(validate::is_valid)
+        .collect();
+
+    all_fitted.sort_by(|a, b| {
+        let (a, b) = (a.params.residuals, b.params.residuals);
+        a.partial_cmp(&b).unwrap_or(std::cmp::Ordering::Equal)
+    });
+    let best_complexity = all_fitted
+        .first()
+        .cloned()
+        .ok_or(Error::NoValidComplexity)?;
 
     Ok((best_complexity, all_fitted))
 }

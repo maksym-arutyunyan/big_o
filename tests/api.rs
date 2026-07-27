@@ -227,12 +227,32 @@ fn infer_exponential() {
 fn empty_input_failure() {
     let data: Vec<(f64, f64)> = vec![];
     let err = big_o::infer_complexity(&data).unwrap_err();
-    assert!(matches!(err, big_o::Error::NoValidComplexity));
+    assert_eq!(err, big_o::Error::NotEnoughData { needed: 3, got: 0 });
 }
 
 #[test]
 fn zero_input_failure() {
+    // Three measurements of one input size carry the evidence of one point.
     let data: Vec<(f64, f64)> = vec![(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)];
     let err = big_o::infer_complexity(&data).unwrap_err();
-    assert!(matches!(err, big_o::Error::NoValidComplexity));
+    assert_eq!(err, big_o::Error::NotEnoughData { needed: 3, got: 1 });
+}
+
+#[test]
+fn too_few_distinct_input_sizes_failure() {
+    // Two points fit every two-parameter model exactly, so they cannot choose.
+    let data: Vec<(f64, f64)> = vec![(1.0, 1.0), (2.0, 2.0)];
+    let err = big_o::infer_complexity(&data).unwrap_err();
+    assert_eq!(err, big_o::Error::NotEnoughData { needed: 3, got: 2 });
+}
+
+#[test]
+fn zero_input_size_no_longer_aborts_the_call() {
+    // Log-space models have no image at x = 0; the rest still compete.
+    let data: Vec<(f64, f64)> = vec![(0.0, 1.0), (1.0, 3.0), (2.0, 5.0), (3.0, 7.0)];
+
+    let (complexity, all) = big_o::infer_complexity(&data).expect("linear data is inferable");
+
+    assert_eq!(complexity.name, big_o::Name::Linear);
+    assert!(all.iter().all(|c| c.name != big_o::Name::Logarithmic));
 }

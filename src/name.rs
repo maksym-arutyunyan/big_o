@@ -62,7 +62,7 @@ impl TryFrom<&str> for Name {
             "o(n^3)" | "cubic" => Ok(Name::Cubic),
             "o(n^m)" | "polynomial" => Ok(Name::Polynomial),
             "o(c^n)" | "exponential" => Ok(Name::Exponential),
-            _ => Err(Error::ParseNotationError),
+            _ => Err(Error::ParseNotation),
         }
     }
 }

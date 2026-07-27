@@ -1,9 +1,15 @@
 use crate::complexity::Complexity;
 use crate::name::Name;
 use crate::params::Params;
-use float_cmp::approx_eq;
 
+/// Tolerance for recognising a fitted coefficient as one of the round values
+/// that collapse a model into a simpler one.
 const EPSILON: f64 = 1e-5;
+
+/// Whether `value` is `expected` to within [`EPSILON`].
+fn is_close(value: f64, expected: f64) -> bool {
+    (value - expected).abs() <= EPSILON
+}
 
 /// Checks if provided complexity is degraded to a lower degree.
 fn is_degraded(name: Name, p: &Params) -> Option<Name> {
@@ -11,7 +17,7 @@ fn is_degraded(name: Name, p: &Params) -> Option<Name> {
     // f(x) = 0 * q(x) + offset = offset
     if name != Name::Constant {
         if let Some(value) = p.gain {
-            if approx_eq!(f64, value, 0.0, epsilon = EPSILON) {
+            if is_close(value, 0.0) {
                 return Some(Name::Constant);
             }
         }
@@ -25,7 +31,7 @@ fn is_degraded(name: Name, p: &Params) -> Option<Name> {
             (3.0, Name::Cubic),     // f(x) = gain * x ^ 3
         ];
         for (expected_power, degraded_to) in cases {
-            if approx_eq!(f64, power, expected_power, epsilon = EPSILON) {
+            if is_close(power, expected_power) {
                 return Some(degraded_to);
             }
         }
@@ -37,7 +43,7 @@ fn is_degraded(name: Name, p: &Params) -> Option<Name> {
             (1.0, Name::Constant), // f(x) = gain * 1 ^ x = gain
         ];
         for (expected_base, degraded_to) in cases {
-            if approx_eq!(f64, base, expected_base, epsilon = EPSILON) {
+            if is_close(base, expected_base) {
                 return Some(degraded_to);
             }
         }
