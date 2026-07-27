@@ -1,50 +1,56 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
+#![warn(missing_docs)]
 
-mod complexity;
+mod analysis;
+mod data;
 mod error;
+mod fit;
 mod linalg;
-mod name;
-mod params;
-mod validate;
+mod model;
+mod warning;
 
-pub use crate::complexity::complexity;
-pub use crate::complexity::Complexity;
+pub use crate::analysis::{Analysis, Inference};
 pub use crate::error::Error;
-pub use crate::name::Name;
-pub use crate::params::Params;
+pub use crate::fit::{Fit, ModelParams};
+pub use crate::model::Model;
+pub use crate::warning::Warning;
 
-/// Infers complexity of given data points, returns the best and all the fitted complexities.
+/// Infers the asymptotic complexity of measured `(input size, cost)` pairs.
+///
+/// Repeated measurements of the same input size are collapsed to their median
+/// before fitting, so an occasional descheduled run does not steer the result.
+/// Non-finite measurements are dropped. A model that cannot describe what
+/// remains — a logarithmic one given an input size of zero, say — is skipped
+/// and listed in [`Inference::warnings`], and the models that can still compete.
+///
+/// Use [`Analysis`] to infer over a restricted set of models.
+///
+/// # Errors
+/// Returns [`Error::NotEnoughData`] if fewer than three distinct input sizes
+/// survive that preparation, and [`Error::NoValidComplexity`] if no model
+/// describes what does.
 ///
 /// # Example
 /// ```
-/// # use assert_approx_eq::assert_approx_eq;
-/// // f(x) = gain * x ^ 2 + offset
-/// let data = vec![(1., 1.), (2., 4.), (3., 9.), (4., 16.)];
+/// // Cost measured over growing inputs, with a few percent of timing noise.
+/// let data = [
+///     (100., 10_180.),
+///     (200., 39_800.),
+///     (400., 161_440.),
+///     (800., 637_440.),
+///     (1600., 2_570_240.),
+///     (3200., 10_352_640.),
+///     (6400., 40_673_280.),
+///     (12800., 164_167_680.),
+/// ];
 ///
-/// let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
+/// let inference = big_o::infer_complexity(&data).unwrap();
 ///
-/// assert_eq!(complexity.name, big_o::Name::Quadratic);
-/// assert_eq!(complexity.notation, "O(n^2)");
-/// assert_approx_eq!(complexity.params.gain.unwrap(), 1.0, 1e-6);
-/// assert_approx_eq!(complexity.params.offset.unwrap(), 0.0, 1e-6);
-/// assert!(complexity.rank < big_o::complexity("O(n^3)").unwrap().rank);
+/// assert_eq!(inference.best.model, big_o::Model::Quadratic);
+/// assert_eq!(inference.best.to_string(), "O(n^2)");
+/// assert!(inference.best.is_at_most(big_o::Model::Quadratic));
+/// assert!(inference.confidence > 0.9);
 /// ```
-pub fn infer_complexity(data: &[(f64, f64)]) -> Result<(Complexity, Vec<Complexity>), Error> {
-    if data.is_empty() || data.iter().all(|(x, y)| *x == 0.0 && *y == 0.0) {
-        return Err(Error::NoValidComplexity);
-    }
-    let mut all_fitted: Vec<Complexity> = Vec::new();
-    for name in name::all_names() {
-        let complexity = complexity::fit(name, data)?;
-        if validate::is_valid(&complexity) {
-            all_fitted.push(complexity);
-        }
-    }
-    if all_fitted.is_empty() {
-        return Err(Error::NoValidComplexity);
-    }
-    all_fitted.sort_by(|a, b| a.params.residuals.partial_cmp(&b.params.residuals).unwrap());
-    let best_complexity = all_fitted[0].clone();
-
-    Ok((best_complexity, all_fitted))
+pub fn infer_complexity(data: &[(f64, f64)]) -> Result<Inference, Error> {
+    Analysis::new().infer(data)
 }

@@ -1,12 +1,13 @@
 [package]
 name = "big_o"
 description = "Infers asymptotic computational complexity"
-version = "0.1.4"
+version = "0.2.0"
 edition = "2021"
+rust-version = "1.70"
 authors = ["Maksym Arutyunyan"]
 repository = "https://github.com/maksym-arutyunyan/big_o"
 homepage = "https://github.com/maksym-arutyunyan/big_o"
-documentation = "https://docs.rs/big-o/"
+documentation = "https://docs.rs/big_o/"
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["big_o", "complexity", "analysis", "performance", "algorithm"]
@@ -15,10 +16,7 @@ categories = ["development-tools", "development-tools::profiling", "development-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-float-cmp = "0.9.0"
-lstsq = "0.4"
-nalgebra = "0.31"
 
 [dev-dependencies]
 assert_approx_eq = "1.1.0"
-rand = "0.8.5"
+proptest = "1"

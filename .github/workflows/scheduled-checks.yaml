@@ -1,0 +1,75 @@
+# See the header of `pre-merge-checks.yaml` for why third-party actions are
+# pinned to a commit SHA and why the trailing comment is a bare version.
+
+name: Scheduled checks
+
+# The checks here are the ones worth running regularly but not worth making
+# every pull request wait for: the wider accuracy sweep, and the toolchains
+# that break on their own schedule rather than on ours.
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays, 06:00 UTC
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  toolchains:
+    name: test on ${{ matrix.toolchain }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain: [stable, beta, nightly]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install toolchain
+        run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+
+      - name: Test
+        run: cargo test --all-features
+
+  # The measurement the selection rule exists to satisfy, at a trial count that
+  # would slow every pull request down for a result that changes rarely.
+  accuracy:
+    name: wider accuracy sweep
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install toolchain
+        run: rustup update stable && rustup default stable
+
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+
+      - name: Sweep
+        run: cargo test --release --test accuracy -- --ignored --nocapture
+
+  # The crate declares a minimum supported Rust version; this is what makes that
+  # claim true rather than aspirational.
+  minimum-supported-rust-version:
+    name: build on the declared MSRV
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read rust-version from Cargo.toml
+        id: msrv
+        run: echo "version=$(sed -n 's/^rust-version *= *"\(.*\)"/\1/p' Cargo.toml)" >> "$GITHUB_OUTPUT"
+
+      - name: Install toolchain
+        run: rustup toolchain install ${{ steps.msrv.outputs.version }} --profile minimal
+
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+
+      # The library only; the test suite is free to use newer language features.
+      - name: Build
+        run: cargo +${{ steps.msrv.outputs.version }} build --lib --all-features

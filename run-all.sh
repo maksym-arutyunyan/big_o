@@ -1,85 +1,47 @@
 #!/bin/bash
+#
+# Everything CI runs, in one command, locally.
 
-# Define color codes
+set -uo pipefail
+
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# Run cargo build and capture its exit status
-cargo build --release --all-targets
-build_status=$?
+declare -a names=()
+declare -a statuses=()
 
-# Run cargo test and capture its exit status
-cargo test
-test_status=$?
+run() {
+    local name="$1"
+    shift
+    echo ""
+    echo "--- $name"
+    "$@"
+    names+=("$name")
+    statuses+=("$?")
+}
 
-# Run cargo test in release and capture its exit status
-cargo test --release
-test_release_status=$?
+run "action pins" ./scripts/check-action-pins.sh
+run "fmt" cargo fmt --all -- --check
+run "clippy" cargo clippy --all-targets --all-features -- -Dclippy::all
+run "test" cargo test --all-features
+run "test (release)" cargo test --release --all-features
+run "docs" cargo doc --no-deps
+# The wider accuracy sweep. In CI this is scheduled rather than per-commit; it
+# is worth the wait before pushing anything that touches model selection.
+run "accuracy sweep" cargo test --release --test accuracy -- --ignored
 
-# Run clippy and capture its exit status
-cargo clippy --all-targets --all --tests --all-features -- -Dclippy::all
-clippy_status=$?
-
-# Run fmt and capture its exit status
-cargo fmt --all -- --check
-fmt_status=$?
-
-# Run `keepsorted` only on files that are not ignored by `.gitignore`.
-# Also ignore `./misc/` and `./tests/`.
-git ls-files -co --exclude-standard \
-    | grep -vE "^misc/|^tests/|^README.md" \
-    | xargs -I {} bash -c "keepsorted '{}' --features gitignore,rust_derive_canonical" {}
-keepsorted_status=$?
-
-# Check if keepsorted changed any files.
-git diff --exit-code
-git_diff_status=$?
-
-# Check the status of each command and print the final status
 echo ""
-if [ $build_status -eq 0 ] &&\
-   [ $test_status -eq 0 ] &&\
-   [ $test_release_status -eq 0 ] &&\
-   [ $clippy_status -eq 0 ] &&\
-   [ $fmt_status -eq 0 ] &&\
-   [ $keepsorted_status -eq 0 ] &&\
-   [ $git_diff_status -eq 0 ] &&\
-   true; then
+failed=0
+for i in "${!names[@]}"; do
+    if [ "${statuses[$i]}" -ne 0 ]; then
+        echo -e " - ${names[$i]} ${RED}FAILED${NC}"
+        failed=1
+    fi
+done
+
+if [ "$failed" -eq 0 ]; then
     echo -e "All checks passed ${GREEN}ok${NC}."
 else
-    echo -e "Some checks ${RED}FAILED${NC}:"
-    if [ $build_status -ne 0 ]; then
-        echo -e " - cargo build ${RED}FAILED${NC}"
-    fi
-    if [ $test_status -ne 0 ]; then
-        echo -e " - cargo test ${RED}FAILED${NC}"
-    fi
-    if [ $test_release_status -ne 0 ]; then
-        echo -e " - cargo test --release ${RED}FAILED${NC}"
-    fi
-    if [ $clippy_status -ne 0 ]; then
-        echo -e " - clippy ${RED}FAILED${NC}"
-    fi
-    if [ $fmt_status -ne 0 ]; then
-        echo -e " - fmt ${RED}FAILED${NC}"
-    fi
-    if [ $keepsorted_status -ne 0 ]; then
-        echo -e " - keepsorted ${RED}FAILED${NC}"
-    fi
-    if [ $git_diff_status -ne 0 ]; then
-        echo -e " - git diff ${RED}FAILED${NC}"
-    fi
-fi
-
-# Exit with a status of 1 if any of the steps failed
-if [ $build_status -ne 0 ] ||\
-   [ $test_status -ne 0 ] ||\
-   [ $test_release_status -ne 0 ] ||\
-   [ $clippy_status -ne 0 ] ||\
-   [ $fmt_status -ne 0 ] ||\
-   [ $keepsorted_status -ne 0 ] ||\
-   [ $git_diff_status -ne 0 ] ||\
-   false; then
     exit 1
 fi
