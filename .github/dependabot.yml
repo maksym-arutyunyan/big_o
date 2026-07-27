@@ -1,0 +1,14 @@
+# Pinning actions to a commit SHA without an updater is half a fix: the pin
+# stops receiving security patches the moment it goes stale. Dependabot rewrites
+# the SHA and its bare-version comment together.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
