@@ -1,258 +1,251 @@
-use assert_approx_eq::assert_approx_eq;
+//! The public surface, exercised the way a caller would use it.
 
-const EPSILON: f64 = 1e-9;
+mod synthetic;
+
+use big_o::{Analysis, Error, Fit, Model, ModelParams, Warning};
+
+/// Clean measurements of a known curve, over a range wide enough to identify it.
+fn clean(model: Model) -> Vec<(f64, f64)> {
+    synthetic::noisy(model, 0, 0.0)
+}
+
+fn infer(model: Model) -> Fit {
+    big_o::infer_complexity(&clean(model))
+        .unwrap_or_else(|e| panic!("{model} data should be inferable: {e}"))
+        .best
+}
 
 #[test]
-fn infer_each() {
-    type Func = Box<dyn Fn(f64) -> f64>;
-    type Notation = &'static str;
-
-    let test_cases: Vec<(Func, big_o::Name, Notation, big_o::Params)> = vec![
-        (
-            Box::new(|x| 0.0 * x + 1.5),
-            big_o::Name::Constant,
-            "O(1)",
-            big_o::Params::new().gain(0.0).offset(1.5).build(),
-        ),
-        (
-            Box::new(|x| 8.0 * x.ln() + 9.0),
-            big_o::Name::Logarithmic,
-            "O(log n)",
-            big_o::Params::new().gain(8.0).offset(9.0).build(),
-        ),
-        (
-            Box::new(|x| 2.0 * x + 3.0),
-            big_o::Name::Linear,
-            "O(n)",
-            big_o::Params::new().gain(2.0).offset(3.0).build(),
-        ),
-        (
-            Box::new(|x| 1.5 * x * x.ln() + 2.0),
-            big_o::Name::Linearithmic,
-            "O(n log n)",
-            big_o::Params::new().gain(1.5).offset(2.0).build(),
-        ),
-        (
-            Box::new(|x| 4.0 * x.powi(2) + 5.0),
-            big_o::Name::Quadratic,
-            "O(n^2)",
-            big_o::Params::new().gain(4.0).offset(5.0).build(),
-        ),
-        (
-            Box::new(|x| 6.0 * x.powi(3) + 7.0),
-            big_o::Name::Cubic,
-            "O(n^3)",
-            big_o::Params::new().gain(6.0).offset(7.0).build(),
-        ),
-        (
-            Box::new(|x| 3.0 * x.powi(4)),
-            big_o::Name::Polynomial,
-            "O(n^m)",
-            big_o::Params::new().gain(3.0).power(4.0).build(),
-        ),
-        (
-            Box::new(|x| 9.0 * 5.0_f64.powf(x)),
-            big_o::Name::Exponential,
-            "O(c^n)",
-            big_o::Params::new().gain(9.0).base(5.0).build(),
-        ),
-    ];
-
-    for (f, name, notation, params) in test_cases {
-        let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-        let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
-        assert_eq!(complexity.name, name);
-        assert_eq!(complexity.notation, notation);
-        assert_approx_eq!(
-            complexity.params.gain.unwrap_or(0.),
-            params.gain.unwrap_or(0.),
-            EPSILON
-        );
-        assert_approx_eq!(
-            complexity.params.offset.unwrap_or(0.),
-            params.offset.unwrap_or(0.),
-            EPSILON
-        );
-        assert_approx_eq!(
-            complexity.params.power.unwrap_or(0.),
-            params.power.unwrap_or(0.),
-            EPSILON
-        );
-        assert_approx_eq!(
-            complexity.params.base.unwrap_or(0.),
-            params.base.unwrap_or(0.),
-            EPSILON
-        );
+fn recovers_every_model_from_its_own_curve() {
+    for model in [
+        Model::Constant,
+        Model::Logarithmic,
+        Model::Linear,
+        Model::Linearithmic,
+        Model::Quadratic,
+        Model::Cubic,
+        Model::Polynomial,
+        Model::Exponential,
+    ] {
+        assert_eq!(infer(model).model, model);
     }
 }
 
 #[test]
-fn infer_constant() {
-    let (name, notation) = (big_o::Name::Constant, "O(1)");
-    let gain = 0.0;
-    let offset = 1.5;
-    let f = Box::new(|x: f64| gain * x + offset);
+fn recovers_the_coefficients_it_was_given() {
+    let data = [(1., 5.), (2., 9.), (3., 13.), (4., 17.), (5., 21.)];
 
-    let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
+    let fit = big_o::infer_complexity(&data).expect("linear data").best;
 
-    assert_eq!(complexity.name, name);
-    assert_eq!(complexity.notation, notation);
-    assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
-    assert_approx_eq!(complexity.params.offset.unwrap(), offset, EPSILON);
-    assert!(complexity.rank <= big_o::complexity("O(1)").unwrap().rank);
+    match fit.params {
+        ModelParams::Linear { gain, offset } => {
+            assert!((gain - 4.0).abs() < 1e-9, "gain {gain}");
+            assert!((offset - 1.0).abs() < 1e-9, "offset {offset}");
+        }
+        other => panic!("expected a linear fit, got {other:?}"),
+    }
+    assert!((fit.r_squared - 1.0).abs() < 1e-9);
+    assert!(fit.relative_error < 1e-9);
+    assert!((fit.evaluate(6.0) - 25.0).abs() < 1e-9);
 }
 
 #[test]
-fn infer_logarithmic() {
-    let (name, notation) = (big_o::Name::Logarithmic, "O(log n)");
-    let gain = 8.0;
-    let offset = 9.0;
-    let f = Box::new(|x: f64| gain * x.ln() + offset);
+fn ranks_every_model_that_could_be_fitted() {
+    let inference = big_o::infer_complexity(&clean(Model::Quadratic)).expect("quadratic data");
 
-    let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
-
-    assert_eq!(complexity.name, name);
-    assert_eq!(complexity.notation, notation);
-    assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
-    assert_approx_eq!(complexity.params.offset.unwrap(), offset, EPSILON);
-    assert!(complexity.rank <= big_o::complexity("O(log n)").unwrap().rank);
+    assert!(inference.all.len() > 1, "all candidates should be reported");
+    assert!(inference.all.contains(&inference.best));
+    let errors: Vec<f64> = inference.all.iter().map(|f| f.relative_error).collect();
+    assert!(
+        errors.windows(2).all(|pair| pair[0] <= pair[1]),
+        "candidates should be ordered best first, got {errors:?}"
+    );
 }
 
 #[test]
-fn infer_linear() {
-    let (name, notation) = (big_o::Name::Linear, "O(n)");
-    let gain = 2.0;
-    let offset = 3.0;
-    let f = Box::new(|x: f64| gain * x + offset);
+fn narrowing_the_candidates_narrows_the_answer() {
+    let data = clean(Model::Quadratic);
 
-    let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
+    let inference = Analysis::new()
+        .models([Model::Linear, Model::Cubic])
+        .infer(&data)
+        .expect("one of the two still fits best");
 
-    assert_eq!(complexity.name, name);
-    assert_eq!(complexity.notation, notation);
-    assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
-    assert_approx_eq!(complexity.params.offset.unwrap(), offset, EPSILON);
-    assert!(complexity.rank <= big_o::complexity("O(n)").unwrap().rank);
+    assert!(inference
+        .all
+        .iter()
+        .all(|fit| fit.model != Model::Quadratic));
+    assert!([Model::Linear, Model::Cubic].contains(&inference.best.model));
 }
 
 #[test]
-fn infer_linearithmic() {
-    let (name, notation) = (big_o::Name::Linearithmic, "O(n log n)");
-    let gain = 1.5;
-    let offset = 2.0;
-    let f = Box::new(|x: f64| gain * x * x.ln() + offset);
+fn an_empty_candidate_set_infers_nothing() {
+    let err = Analysis::new()
+        .models([])
+        .infer(&clean(Model::Linear))
+        .unwrap_err();
 
-    let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
-
-    assert_eq!(complexity.name, name);
-    assert_eq!(complexity.notation, notation);
-    assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
-    assert_approx_eq!(complexity.params.offset.unwrap(), offset, EPSILON);
-    assert!(complexity.rank <= big_o::complexity("O(n log n)").unwrap().rank);
+    assert_eq!(err, Error::NoValidComplexity);
 }
 
 #[test]
-fn infer_quadratic() {
-    let (name, notation) = (big_o::Name::Quadratic, "O(n^2)");
-    let gain = 4.0;
-    let offset = 5.0;
-    let f = Box::new(|x: f64| gain * x.powi(2) + offset);
+fn compares_against_a_named_bound() {
+    let linear = infer(Model::Linear);
 
-    let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
+    assert!(linear.is_at_most(Model::Linear));
+    assert!(linear.is_at_most(Model::Quadratic));
+    assert!(linear.is_at_most(Model::Polynomial), "n is a polynomial");
+    assert!(!linear.is_at_most(Model::Logarithmic));
 
-    assert_eq!(complexity.name, name);
-    assert_eq!(complexity.notation, notation);
-    assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
-    assert_approx_eq!(complexity.params.offset.unwrap(), offset, EPSILON);
-    assert!(complexity.rank <= big_o::complexity("O(n^2)").unwrap().rank);
+    assert!(linear.is_faster_than(Model::Quadratic));
+    assert!(!linear.is_faster_than(Model::Linear));
+    assert!(!linear.is_faster_than(Model::Constant));
 }
 
 #[test]
-fn infer_cubic() {
-    let (name, notation) = (big_o::Name::Cubic, "O(n^3)");
-    let gain = 6.0;
-    let offset = 7.0;
-    let f = Box::new(|x: f64| gain * x.powi(3) + offset);
+fn an_exponential_is_the_one_thing_that_is_not_polynomial() {
+    let exponential = infer(Model::Exponential);
 
-    let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
+    assert!(!exponential.is_at_most(Model::Polynomial));
+    assert!(!exponential.is_at_most(Model::Cubic));
+    assert!(exponential.is_at_most(Model::Exponential));
+}
 
-    assert_eq!(complexity.name, name);
-    assert_eq!(complexity.notation, notation);
-    assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
-    assert_approx_eq!(complexity.params.offset.unwrap(), offset, EPSILON);
-    assert!(complexity.rank <= big_o::complexity("O(n^3)").unwrap().rank);
+/// The relative comparison that motivated the ordering: a fitted exponent has
+/// to fall between the named models it sits between, not beside them.
+#[test]
+fn orders_fitted_exponents_among_the_named_models() {
+    let ordered = [
+        infer(Model::Constant),
+        infer(Model::Logarithmic),
+        infer(Model::Linear),
+        infer(Model::Linearithmic),
+        infer(Model::Quadratic),
+        infer(Model::Cubic),
+        infer(Model::Exponential),
+    ];
+
+    for pair in ordered.windows(2) {
+        match pair {
+            [slower, faster] => assert!(slower < faster, "{slower} should order below {faster}"),
+            _ => unreachable!("windows(2) yields pairs"),
+        }
+    }
+
+    // A fitted O(n^1.5) belongs between O(n) and O(n^2).
+    let data: Vec<(f64, f64)> = (1..=40).map(|n| (n as f64, (n as f64).powf(1.5))).collect();
+    let free = big_o::infer_complexity(&data)
+        .expect("a free exponent")
+        .best;
+
+    assert!(infer(Model::Linear) < free);
+    assert!(free < infer(Model::Quadratic));
 }
 
 #[test]
-fn infer_polynomial() {
-    let (name, notation) = (big_o::Name::Polynomial, "O(n^m)");
-    let gain = 3.0;
-    let power = 4.0;
-    let f = Box::new(|x: f64| gain * x.powf(power));
+fn substitutes_fitted_values_into_the_notation() {
+    let data: Vec<(f64, f64)> = (1..=40).map(|n| (n as f64, (n as f64).powf(1.5))).collect();
+    let free = big_o::infer_complexity(&data)
+        .expect("a free exponent")
+        .best;
+    assert_eq!(free.to_string(), "O(n^1.5)");
 
-    let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
+    let data: Vec<(f64, f64)> = (1..=24).map(|n| (n as f64, 2f64.powi(n))).collect();
+    let exponential = big_o::infer_complexity(&data).expect("an exponential").best;
+    assert_eq!(exponential.to_string(), "O(2^n)");
 
-    assert_eq!(complexity.name, name);
-    assert_eq!(complexity.notation, notation);
-    assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
-    assert_approx_eq!(complexity.params.power.unwrap(), power, EPSILON);
-    // Note: impossible to create a generic complexity O(n^m) without providing its degree.
-    assert!(complexity.rank < big_o::complexity("O(c^n)").unwrap().rank);
+    // A model whose shape its name already fixes keeps that name.
+    assert_eq!(infer(Model::Linearithmic).to_string(), "O(n log n)");
+    assert_eq!(infer(Model::Constant).to_string(), "O(1)");
 }
 
 #[test]
-fn infer_exponential() {
-    let (name, notation) = (big_o::Name::Exponential, "O(c^n)");
-    let gain = 9.0;
-    let base: f64 = 5.0;
-    let f = Box::new(|x: f64| gain * base.powf(x));
-
-    let data: Vec<(f64, f64)> = (1..100).map(|i| i as f64).map(|x| (x, f(x))).collect();
-    let (complexity, _all) = big_o::infer_complexity(&data).unwrap();
-
-    assert_eq!(complexity.name, name);
-    assert_eq!(complexity.notation, notation);
-    assert_approx_eq!(complexity.params.gain.unwrap(), gain, EPSILON);
-    assert_approx_eq!(complexity.params.base.unwrap(), base, EPSILON);
-    assert!(complexity.rank <= big_o::complexity("O(c^n)").unwrap().rank);
+fn parses_a_model_from_its_notation_or_its_name() {
+    assert_eq!("O(n^2)".parse::<Model>(), Ok(Model::Quadratic));
+    assert_eq!("quadratic".parse::<Model>(), Ok(Model::Quadratic));
+    assert_eq!(Model::Quadratic.to_string(), "O(n^2)");
+    assert_eq!("O(n^2.5)".parse::<Model>(), Err(Error::ParseNotation));
 }
 
 #[test]
-fn empty_input_failure() {
-    let data: Vec<(f64, f64)> = vec![];
-    let err = big_o::infer_complexity(&data).unwrap_err();
-    assert_eq!(err, big_o::Error::NotEnoughData { needed: 3, got: 0 });
+fn reports_confidence_that_is_the_same_every_run() {
+    let data = clean(Model::Quadratic);
+
+    let first = big_o::infer_complexity(&data).expect("quadratic data");
+    let second = big_o::infer_complexity(&data).expect("quadratic data");
+
+    assert_eq!(first.confidence.to_bits(), second.confidence.to_bits());
+    assert!((0.0..=1.0).contains(&first.confidence));
+    assert!(
+        first.confidence > 0.9,
+        "clean data should be confident, got {}",
+        first.confidence
+    );
 }
 
 #[test]
-fn zero_input_failure() {
-    // Three measurements of one input size carry the evidence of one point.
-    let data: Vec<(f64, f64)> = vec![(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)];
-    let err = big_o::infer_complexity(&data).unwrap_err();
-    assert_eq!(err, big_o::Error::NotEnoughData { needed: 3, got: 1 });
+fn reports_low_confidence_when_the_data_barely_decides() {
+    let barely = [
+        (1000., 1000.),
+        (1010., 1011.),
+        (1020., 1019.),
+        (1030., 1032.),
+    ];
+
+    let inference = big_o::infer_complexity(&barely).expect("something fits");
+
+    assert!(
+        inference.confidence < 0.9,
+        "a narrow noisy range should not be confident, got {}",
+        inference.confidence
+    );
 }
 
 #[test]
-fn too_few_distinct_input_sizes_failure() {
-    // Two points fit every two-parameter model exactly, so they cannot choose.
-    let data: Vec<(f64, f64)> = vec![(1.0, 1.0), (2.0, 2.0)];
-    let err = big_o::infer_complexity(&data).unwrap_err();
-    assert_eq!(err, big_o::Error::NotEnoughData { needed: 3, got: 2 });
+fn warns_about_a_range_too_narrow_to_separate_the_models() {
+    let narrow = [(1000., 1.), (1050., 2.), (1100., 3.), (1150., 4.)];
+
+    let inference = big_o::infer_complexity(&narrow).expect("something fits");
+
+    assert!(inference
+        .warnings
+        .iter()
+        .any(|w| matches!(w, Warning::NarrowRange { .. })));
+    assert!(inference
+        .warnings
+        .iter()
+        .any(|w| matches!(w, Warning::TooFewPoints { .. })));
 }
 
 #[test]
-fn zero_input_size_no_longer_aborts_the_call() {
-    // Log-space models have no image at x = 0; the rest still compete.
-    let data: Vec<(f64, f64)> = vec![(0.0, 1.0), (1.0, 3.0), (2.0, 5.0), (3.0, 7.0)];
+fn warns_when_cost_rises_and_falls() {
+    let sawtooth: Vec<(f64, f64)> = (1..=12)
+        .map(|n| (n as f64, if n % 2 == 0 { 100.0 } else { 10.0 }))
+        .collect();
 
-    let (complexity, all) = big_o::infer_complexity(&data).expect("linear data is inferable");
+    let inference = big_o::infer_complexity(&sawtooth).expect("something fits");
 
-    assert_eq!(complexity.name, big_o::Name::Linear);
-    assert!(all.iter().all(|c| c.name != big_o::Name::Logarithmic));
+    assert!(inference.warnings.contains(&Warning::NonMonotonic));
+}
+
+#[test]
+fn a_clean_wide_sample_warns_about_nothing() {
+    let inference = big_o::infer_complexity(&clean(Model::Quadratic)).expect("quadratic data");
+
+    assert!(
+        inference.warnings.is_empty(),
+        "expected no warnings, got {:?}",
+        inference.warnings
+    );
+}
+
+#[test]
+fn errors_read_as_sentences() {
+    let err = big_o::infer_complexity(&[(1.0, 5.0)]).unwrap_err();
+
+    assert_eq!(
+        err.to_string(),
+        "Need at least 3 distinct input sizes to infer a complexity, got 1"
+    );
+    let _: &dyn std::error::Error = &err;
 }

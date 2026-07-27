@@ -12,12 +12,8 @@ pub enum Error {
         /// Distinct input sizes supplied.
         got: usize,
     },
-    /// Returned when a string cannot be parsed into a [`Name`](crate::name::Name).
+    /// Returned when a string cannot be parsed into a [`Model`](crate::Model).
     ParseNotation,
-    /// Returned when not all coefficients for the approximation function are provided.
-    MissingFunctionCoeffs,
-    /// Returned when a polynomial complexity lacks a power parameter.
-    MissingPolynomialPower,
     /// Returned when no complexity model fits the input data.
     NoValidComplexity,
 }
@@ -30,8 +26,6 @@ impl fmt::Display for Error {
                 "Need at least {needed} distinct input sizes to infer a complexity, got {got}"
             ),
             Error::ParseNotation => write!(f, "Can't convert string to Name"),
-            Error::MissingFunctionCoeffs => write!(f, "No coefficients to compute f(x)"),
-            Error::MissingPolynomialPower => write!(f, "Polynomial power parameter is missing"),
             Error::NoValidComplexity => write!(f, "No valid complexity could be inferred"),
         }
     }

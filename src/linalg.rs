@@ -16,28 +16,38 @@ pub(crate) struct Line {
     pub offset: f64,
 }
 
-/// Fits `f(x) = gain * x + offset` to `data` by ordinary least squares.
+/// Fits `f(x) = gain * x + offset` to weighted `(x, y, weight)` points by least
+/// squares.
+///
+/// A weight is how much that point's error counts. Weighting every point alike
+/// minimizes the absolute error, which lets the largest measurements decide the
+/// whole fit; weighting by `1 / y^2` minimizes the *relative* error, which is
+/// what data carrying proportional noise calls for.
 ///
 /// Returns `None` when the coefficients are not determined by the sample:
-/// fewer than two points, a non-finite coordinate, no spread in `x`, or an
+/// fewer than two points, a non-finite value, no weighted spread in `x`, or an
 /// intermediate sum that overflows to infinity.
-pub(crate) fn fit_line(data: &[(f64, f64)]) -> Option<Line> {
+pub(crate) fn fit_line(data: &[(f64, f64, f64)]) -> Option<Line> {
     if data.len() < 2 {
         return None;
     }
-    let n = data.len() as f64;
 
+    let mut total = 0.0;
     let mut sum_x = 0.0;
     let mut sum_y = 0.0;
-    for &(x, y) in data {
-        if !x.is_finite() || !y.is_finite() {
+    for &(x, y, w) in data {
+        if !x.is_finite() || !y.is_finite() || !w.is_finite() || w < 0.0 {
             return None;
         }
-        sum_x += x;
-        sum_y += y;
+        total += w;
+        sum_x += w * x;
+        sum_y += w * y;
     }
-    let mean_x = sum_x / n;
-    let mean_y = sum_y / n;
+    if !total.is_finite() || total <= 0.0 {
+        return None;
+    }
+    let mean_x = sum_x / total;
+    let mean_y = sum_y / total;
     if !mean_x.is_finite() || !mean_y.is_finite() {
         return None;
     }
@@ -47,10 +57,10 @@ pub(crate) fn fit_line(data: &[(f64, f64)]) -> Option<Line> {
     // most of its significant digits on data spanning several decades.
     let mut sxx = 0.0;
     let mut sxy = 0.0;
-    for &(x, y) in data {
+    for &(x, y, w) in data {
         let dx = x - mean_x;
-        sxx += dx * dx;
-        sxy += dx * (y - mean_y);
+        sxx += w * dx * dx;
+        sxy += w * dx * (y - mean_y);
     }
     if !sxx.is_finite() || sxx <= 0.0 || !sxy.is_finite() {
         return None;
@@ -62,6 +72,25 @@ pub(crate) fn fit_line(data: &[(f64, f64)]) -> Option<Line> {
         return None;
     }
     Some(Line { gain, offset })
+}
+
+/// Returns the weighted mean of `(value, weight)` pairs, or `None` if there is
+/// no weight to average over.
+pub(crate) fn weighted_mean(values: impl IntoIterator<Item = (f64, f64)>) -> Option<f64> {
+    let mut sum = 0.0;
+    let mut total = 0.0;
+    for (value, weight) in values {
+        if !value.is_finite() || !weight.is_finite() || weight < 0.0 {
+            return None;
+        }
+        sum += value * weight;
+        total += weight;
+    }
+    if !total.is_finite() || total <= 0.0 {
+        return None;
+    }
+    let mean = sum / total;
+    mean.is_finite().then_some(mean)
 }
 
 /// Returns the mean of `values`, or `None` if it is empty or non-finite.
@@ -107,8 +136,15 @@ mod tests {
 
     const EPSILON: f64 = 1e-12;
 
+    /// Fits with every point counting the same.
     fn fitted(data: &[(f64, f64)]) -> Line {
-        fit_line(data).expect("line is determined by this data")
+        let weighted: Vec<(f64, f64, f64)> = data.iter().map(|&(x, y)| (x, y, 1.0)).collect();
+        fit_line(&weighted).expect("line is determined by this data")
+    }
+
+    fn unweighted(data: &[(f64, f64)]) -> Option<Line> {
+        let weighted: Vec<(f64, f64, f64)> = data.iter().map(|&(x, y)| (x, y, 1.0)).collect();
+        fit_line(&weighted)
     }
 
     #[test]
@@ -154,11 +190,39 @@ mod tests {
 
     #[test]
     fn reports_undetermined_fits_instead_of_failing() {
-        assert_eq!(fit_line(&[]), None);
-        assert_eq!(fit_line(&[(1., 1.)]), None, "a single point");
-        assert_eq!(fit_line(&[(1., 1.), (1., 2.)]), None, "no spread in x");
-        assert_eq!(fit_line(&[(1., 1.), (2., f64::NAN)]), None, "NaN");
-        assert_eq!(fit_line(&[(1., 1.), (f64::INFINITY, 2.)]), None, "infinity");
+        assert_eq!(unweighted(&[]), None);
+        assert_eq!(unweighted(&[(1., 1.)]), None, "a single point");
+        assert_eq!(unweighted(&[(1., 1.), (1., 2.)]), None, "no spread in x");
+        assert_eq!(unweighted(&[(1., 1.), (2., f64::NAN)]), None, "NaN");
+        assert_eq!(
+            unweighted(&[(1., 1.), (f64::INFINITY, 2.)]),
+            None,
+            "infinity"
+        );
+        assert_eq!(fit_line(&[(1., 1., 0.0), (2., 2., 0.0)]), None, "no weight");
+    }
+
+    #[test]
+    fn weights_decide_which_points_the_line_follows() {
+        // Three points on y = x, and one far outlier at the far end.
+        let data = [(1., 1., 1.0), (2., 2., 1.0), (3., 3., 1.0), (4., 40., 1.0)];
+        let pulled = fit_line(&data).expect("determined");
+
+        let mut discounted = data;
+        discounted[3].2 = 1e-6;
+        let ignored = fit_line(&discounted).expect("determined");
+
+        assert!(pulled.gain > 5.0, "the outlier drags an even-weighted fit");
+        assert_approx_eq!(ignored.gain, 1., 1e-3);
+        assert_approx_eq!(ignored.offset, 0., 1e-3);
+    }
+
+    #[test]
+    fn weighted_mean_of_values() {
+        assert_eq!(weighted_mean([(1., 1.), (3., 1.)]), Some(2.));
+        assert_eq!(weighted_mean([(1., 3.), (5., 1.)]), Some(2.));
+        assert_eq!(weighted_mean([]), None);
+        assert_eq!(weighted_mean([(1., 0.)]), None, "no weight to average over");
     }
 
     #[test]
