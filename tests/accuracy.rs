@@ -30,21 +30,36 @@ const REQUIRED: f64 = 0.95;
 
 /// Runs `trials` per model at noise level `sigma` and returns, per model, the
 /// fraction of trials that recovered it.
+/// Runs `trials` per model at noise level `sigma`, over every constant-term
+/// share, and returns per model the fraction of trials that recovered it.
+///
+/// Every share counts towards one rate per model rather than one rate per
+/// share, so a model that is only recovered under the easier shape cannot pass.
 fn recovery_rates(trials: u64, sigma: f64) -> BTreeMap<&'static str, (f64, Vec<String>)> {
     let mut rates = BTreeMap::new();
     for model in MODELS {
         let mut recovered = 0u64;
+        let mut attempted = 0u64;
         let mut missed: Vec<String> = Vec::new();
-        for trial in 0..trials {
-            let data = synthetic::noisy(model, trial, sigma);
-            match big_o::infer_complexity(&data) {
-                Ok(inference) if inference.best.model == model => recovered += 1,
-                Ok(inference) => missed.push(format!("trial {trial}: {}", inference.best)),
-                Err(e) => missed.push(format!("trial {trial}: {e}")),
+        for &share in &synthetic::OFFSET_SHARES {
+            for trial in 0..trials {
+                let data = synthetic::with_offset_share(model, trial, sigma, share);
+                attempted += 1;
+                match big_o::infer_complexity(&data) {
+                    Ok(inference) if inference.best.model == model => recovered += 1,
+                    Ok(inference) => missed.push(format!(
+                        "offset {share}, trial {trial}: {} ({:?})",
+                        inference.best, inference.best.model
+                    )),
+                    Err(e) => missed.push(format!("offset {share}, trial {trial}: {e}")),
+                }
             }
         }
         missed.truncate(3);
-        rates.insert(model.notation(), (recovered as f64 / trials as f64, missed));
+        rates.insert(
+            model.notation(),
+            (recovered as f64 / attempted as f64, missed),
+        );
     }
     rates
 }
@@ -73,7 +88,7 @@ fn assert_recovers(trials: u64, sigma: f64, required: f64) {
 
     assert!(
         failures.is_empty(),
-        "at {:.0}% noise, {} of 8 models fell below {:.0}% over {trials} trials:\n{}",
+        "at {:.0}% noise, {} of 8 models fell below {:.0}% over {trials} trials per constant-term share:\n{}",
         sigma * 100.0,
         failures.len(),
         required * 100.0,
@@ -106,8 +121,9 @@ fn recovers_every_model_over_many_trials() {
 fn report_confusion_matrix() {
     for sigma in [0.0, NOISE] {
         println!(
-            "\nnoise {:.0}%, {DEEP_TRIALS} trials per model",
-            sigma * 100.0
+            "\nnoise {:.0}%, {DEEP_TRIALS} trials per model per constant-term share {:?}",
+            sigma * 100.0,
+            synthetic::OFFSET_SHARES
         );
         for (model, (rate, missed)) in recovery_rates(DEEP_TRIALS, sigma) {
             println!("  {model:<12} {:>5.1}%  {missed:?}", rate * 100.0);

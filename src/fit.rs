@@ -84,20 +84,6 @@ impl ModelParams {
         }
     }
 
-    /// The model class these parameters belong to.
-    pub fn model(&self) -> Model {
-        match self {
-            ModelParams::Constant { .. } => Model::Constant,
-            ModelParams::Logarithmic { .. } => Model::Logarithmic,
-            ModelParams::Linear { .. } => Model::Linear,
-            ModelParams::Linearithmic { .. } => Model::Linearithmic,
-            ModelParams::Quadratic { .. } => Model::Quadratic,
-            ModelParams::Cubic { .. } => Model::Cubic,
-            ModelParams::Polynomial { .. } => Model::Polynomial,
-            ModelParams::Exponential { .. } => Model::Exponential,
-        }
-    }
-
     /// Whether every coefficient is a finite number.
     fn is_finite(&self) -> bool {
         match *self {
@@ -188,9 +174,17 @@ impl Fit {
 
 /// Ordering by growth rate, with fitted exponents interleaved among the named
 /// models: `O(n) < O(n^1.5) < O(n^2)`.
+///
+/// Partial in both the directions the name suggests. Growth rate says nothing
+/// about two fits that grow alike — two quadratics with different constants are
+/// not ordered, and reporting them equal would contradict `PartialEq`, which
+/// std requires to agree with this.
 impl PartialOrd for Fit {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.degree().partial_cmp(&other.degree())
+        match self.degree().partial_cmp(&other.degree())? {
+            Ordering::Equal if self != other => None,
+            ordering => Some(ordering),
+        }
     }
 }
 
@@ -200,10 +194,24 @@ impl PartialOrd for Fit {
 impl fmt::Display for Fit {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.params {
-            ModelParams::Polynomial { power, .. } => write!(f, "O(n^{})", trim(power)),
+            ModelParams::Polynomial { power, .. } => write!(f, "O(n^{})", exponent(power)),
             ModelParams::Exponential { base, .. } => write!(f, "O({}^n)", trim(base)),
             _ => write!(f, "{}", self.model.notation()),
         }
+    }
+}
+
+/// Renders a fitted exponent so that it cannot be read as a named model.
+///
+/// Two decimals is the right precision to read, but an exponent of 2.004 would
+/// render as `O(n^2)` — indistinguishable from a fitted `Quadratic`, which is a
+/// different and stronger claim about the data. Where rounding would erase that
+/// distinction, more precision is shown instead.
+fn exponent(power: f64) -> String {
+    let rounded = trim(power);
+    match rounded.contains('.') || power.fract() == 0.0 {
+        true => rounded,
+        false => format!("{power:.3}"),
     }
 }
 
@@ -522,6 +530,38 @@ mod tests {
             fitted(Model::Linearithmic, &linearithmic).to_string(),
             "O(n log n)"
         );
+    }
+
+    #[test]
+    fn a_fitted_exponent_never_masquerades_as_a_named_model() {
+        let almost_square = Fit {
+            model: Model::Polynomial,
+            params: ModelParams::Polynomial {
+                gain: 1.0,
+                power: 2.004,
+            },
+            r_squared: 1.0,
+            relative_error: 0.0,
+        };
+
+        assert_eq!(almost_square.to_string(), "O(n^2.004)");
+        assert_eq!(exponent(2.0), "2", "a whole exponent still reads plainly");
+        assert_eq!(exponent(1.5), "1.5");
+        assert_eq!(exponent(-1.0), "-1");
+    }
+
+    #[test]
+    fn fits_that_grow_alike_are_unordered_rather_than_equal() {
+        let a = fitted(Model::Quadratic, &quadratic_data());
+        let scaled: Vec<(f64, f64)> = quadratic_data()
+            .iter()
+            .map(|&(x, y)| (x, 3.0 * y))
+            .collect();
+        let b = fitted(Model::Quadratic, &scaled);
+
+        assert_ne!(a, b);
+        assert_eq!(a.partial_cmp(&b), None, "must not contradict PartialEq");
+        assert_eq!(a.partial_cmp(&a), Some(Ordering::Equal));
     }
 
     #[test]

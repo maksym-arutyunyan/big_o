@@ -19,7 +19,11 @@ use crate::warning::Warning;
 ///
 /// So a model that fits within this margin of the best is treated as fitting
 /// equally well, and among those the simplest wins.
-const SIMPLICITY_TOLERANCE: f64 = 0.05;
+///
+/// The size of the margin is set by measurement, not by taste: `tests/accuracy.rs`
+/// sweeps every model at 5% noise both with and without a constant term, and the
+/// free exponent takes quadratic data off the named models below about 0.10.
+const SIMPLICITY_TOLERANCE: f64 = 0.15;
 
 /// Further allowance, per free parameter, for a model that spends fewer of them.
 ///
@@ -497,6 +501,30 @@ mod tests {
             0.0
         )));
         assert!(is_plausible(&polynomial(-1.0, 0.0)), "a falling cost");
+    }
+
+    #[test]
+    fn rejects_an_exponential_that_is_really_a_constant() {
+        // 1^n is not exponential growth, and O(1) is already competing.
+        let degenerate = fit_of(
+            Model::Exponential,
+            ModelParams::Exponential {
+                gain: 5.0,
+                base: 1.0,
+            },
+            0.0,
+        );
+        let genuine = fit_of(
+            Model::Exponential,
+            ModelParams::Exponential {
+                gain: 5.0,
+                base: 1.5,
+            },
+            0.0,
+        );
+
+        assert!(!is_plausible(&degenerate));
+        assert!(is_plausible(&genuine));
     }
 
     #[test]

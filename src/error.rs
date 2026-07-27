@@ -25,7 +25,7 @@ impl fmt::Display for Error {
                 f,
                 "Need at least {needed} distinct input sizes to infer a complexity, got {got}"
             ),
-            Error::ParseNotation => write!(f, "Can't convert string to Name"),
+            Error::ParseNotation => write!(f, "Can't convert string to a complexity model"),
             Error::NoValidComplexity => write!(f, "No valid complexity could be inferred"),
         }
     }

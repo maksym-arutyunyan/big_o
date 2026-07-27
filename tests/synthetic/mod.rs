@@ -4,6 +4,10 @@
 //! Everything here is seeded. A test that fails must fail again on the next run
 //! with the same data, or it reports noise instead of a defect.
 
+// Each test binary compiles this module separately and uses a different part of
+// it, so what is dead in one is live in another.
+#![allow(dead_code)]
+
 use big_o::Model;
 
 /// Distinct input sizes in a generated sample. Enough that the models have room
@@ -16,13 +20,21 @@ pub const POINTS: usize = 24;
 /// distinguishable at all — more so than the number of points in it.
 pub const DECADES: f64 = 4.0;
 
-/// Fraction of the total that a generated curve's constant term may contribute.
+/// Shares of the total that a generated curve's constant term may contribute.
 ///
-/// Held small on purpose. A curve whose constant term dominates is flat over
-/// the measured range whatever its name, and a sweep built from those would be
-/// measuring signal-to-noise rather than the thing under test: whether the
-/// right model is picked when the data does distinguish them.
-const OFFSET_SHARE: f64 = 0.2;
+/// Swept rather than fixed, because the two ends are different problems and a
+/// single value in the middle hides both.
+///
+/// Zero is the pure power law — the shape a clean algorithmic benchmark
+/// actually produces, and the one the free-exponent model competes hardest on,
+/// since it is fitted in log-log space and has no constant term of its own to
+/// spend. Fixing this at a comfortable 0.2 was enough on its own to hide
+/// quadratic recovery falling to 90%.
+///
+/// The upper end is held well below one: a curve whose constant term dominates
+/// is flat over the measured range whatever its name, and a sweep built from
+/// those measures signal-to-noise rather than the thing under test.
+pub const OFFSET_SHARES: [f64; 2] = [0.0, 0.2];
 
 /// Multiplicative timing noise: `y * (1 + e)`, `e ~ N(0, sigma)`.
 ///
@@ -30,8 +42,19 @@ const OFFSET_SHARE: f64 = 0.2;
 /// slow whether it took a microsecond or a second — so the noise is a fraction
 /// of the value, not a fixed amount added to it.
 pub fn noisy(model: Model, trial: u64, sigma: f64) -> Vec<(f64, f64)> {
+    with_offset_share(model, trial, sigma, 0.2)
+}
+
+/// As [`noisy`], with the curve's constant term sized to `offset_share` of the
+/// growth term at the largest input. See [`OFFSET_SHARES`].
+pub fn with_offset_share(
+    model: Model,
+    trial: u64,
+    sigma: f64,
+    offset_share: f64,
+) -> Vec<(f64, f64)> {
     let mut rng = Rng::seeded(model, trial);
-    let curve = curve(model, &mut rng);
+    let curve = curve(model, &mut rng, offset_share);
 
     inputs(model)
         .into_iter()
@@ -53,13 +76,13 @@ fn inputs(model: Model) -> Vec<f64> {
 }
 
 /// Draws a curve of the given shape with random but sane coefficients.
-fn curve(model: Model, rng: &mut Rng) -> Box<dyn Fn(f64) -> f64> {
+fn curve(model: Model, rng: &mut Rng, offset_share: f64) -> Box<dyn Fn(f64) -> f64> {
     let gain = rng.between(1.0, 100.0);
     let largest = inputs(model).into_iter().fold(0.0, f64::max);
 
     // Sized against the growth term at the largest input, so that the shape of
     // the curve is what the sample carries.
-    let mut offset_of = |growth: f64| rng.between(0.0, OFFSET_SHARE * gain * growth);
+    let mut offset_of = |growth: f64| rng.between(0.0, offset_share * gain * growth);
 
     match model {
         Model::Constant => {

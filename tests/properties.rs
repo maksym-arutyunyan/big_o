@@ -41,7 +41,16 @@ proptest! {
             prop_assert!(inference.best.relative_error >= 0.0);
             prop_assert!((0.0..=1.0).contains(&inference.confidence));
             prop_assert!(inference.all.contains(&inference.best));
-            prop_assert!(coefficients_are_finite(&inference.best.params));
+            for fit in &inference.all {
+                prop_assert!(coefficients_are_finite(&fit.params));
+                prop_assert!(fit.r_squared.is_finite());
+                prop_assert!(fit.relative_error.is_finite());
+            }
+            for warning in &inference.warnings {
+                if let big_o::Warning::NarrowRange { decades, .. } = warning {
+                    prop_assert!(decades.is_finite());
+                }
+            }
         }
     }
 
