@@ -57,8 +57,16 @@ Breaking: every public type changed. See the README for the current shape.
   missing parameter cannot be constructed.
 - The numeric rank is no longer public.
 - Errors are named consistently; `NotEnoughData` reports what it needed.
+- `Error`, `Warning`, `Fit` and `Inference` are `#[non_exhaustive]`: a new
+  failure, a new way for measurements to mislead, or a new score is additive
+  rather than breaking. `Model` and `ModelParams` deliberately are not — they
+  name the complexity classes the crate knows, and a caller matching on the
+  answer should be told by the compiler when that vocabulary grows.
 
 ### Removed
 
 - All runtime dependencies — `nalgebra`, `lstsq` and `float-cmp`.
 - Sleep-based tests, which spent about ten seconds of every CI run asleep.
+- `TryFrom<&str> for Model` and `From<Model> for &str`. `"O(n^2)".parse()` and
+  `Model::notation()` already did both jobs, and two spellings of one operation
+  is a decision handed to the reader for nothing.

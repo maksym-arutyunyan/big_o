@@ -7,8 +7,13 @@ use std::fmt;
 /// A warning never changes which model was chosen. It reports the conditions
 /// under which that choice was made, so a result that happens to be right for
 /// the wrong reasons can be told apart from one that is supported by the data.
+///
+/// Non-exhaustive: match with a `_` arm, or just `Display` it. Learning to spot
+/// a new way for measurements to mislead is the point of the type, and adding
+/// one should not break the callers who already print whatever it finds.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[non_exhaustive]
 pub enum Warning {
     /// The sample has few distinct input sizes. The fit is determined, but
     /// there is little room for the models to disagree, so the winner is

@@ -1,7 +1,11 @@
 use std::fmt;
 
 /// Reasons a complexity could not be produced.
+///
+/// Non-exhaustive: match with a `_` arm, because a later release may fail for a
+/// reason this one has no name for.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Error {
     /// Returned when the sample holds too few distinct input sizes to tell the
     /// models apart. Repeated measurements of one input size collapse to a

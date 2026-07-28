@@ -52,7 +52,10 @@ const LOG_DEGREE: f64 = 0.13;
 impl Model {
     /// The notation this model is written in, with any fitted parameter left
     /// symbolic. [`Fit`](crate::Fit)'s `Display` substitutes the fitted value.
-    pub fn notation(&self) -> &'static str {
+    ///
+    /// This is what `Display` writes; it is a separate method because the
+    /// notation is a `&'static str` and `Display` cannot hand one back.
+    pub fn notation(self) -> &'static str {
         match self {
             Model::Constant => "O(1)",
             Model::Logarithmic => "O(log n)",
@@ -110,17 +113,13 @@ impl Model {
     }
 }
 
-impl From<Model> for &str {
-    fn from(model: Model) -> &'static str {
-        model.notation()
-    }
-}
+/// Parses either the notation or the name of a model, in any case:
+/// `"O(n log n)"` and `"linearithmic"` are the same model.
+impl FromStr for Model {
+    type Err = Error;
 
-impl TryFrom<&str> for Model {
-    type Error = Error;
-
-    fn try_from(string: &str) -> Result<Self, Self::Error> {
-        match &string.to_lowercase()[..] {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match &s.to_lowercase()[..] {
             "o(1)" | "constant" => Ok(Model::Constant),
             "o(log n)" | "logarithmic" => Ok(Model::Logarithmic),
             "o(n)" | "linear" => Ok(Model::Linear),
@@ -131,14 +130,6 @@ impl TryFrom<&str> for Model {
             "o(c^n)" | "exponential" => Ok(Model::Exponential),
             _ => Err(Error::ParseNotation),
         }
-    }
-}
-
-impl FromStr for Model {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.try_into()
     }
 }
 
@@ -175,36 +166,29 @@ mod tests {
     ];
 
     #[test]
-    fn model_into_string() {
+    fn writes_its_notation() {
         for (string, model) in NOTATION_TEST_CASES {
-            let converted: &str = model.into();
-            assert_eq!(converted, string);
-        }
-    }
-
-    #[test]
-    fn model_to_string() {
-        for (string, model) in NOTATION_TEST_CASES {
-            assert_eq!(model.to_string(), string);
+            assert_eq!(model.notation(), string);
+            assert_eq!(model.to_string(), string, "Display must agree");
         }
     }
 
     #[test]
     fn parses_notation_and_name() {
         for (string, model) in [NOTATION_TEST_CASES, NAMED_TEST_CASES].concat() {
-            assert_eq!(Model::try_from(string), Ok(model));
             assert_eq!(string.parse::<Model>(), Ok(model));
-            let into: Model = string.try_into().expect("a known notation");
-            assert_eq!(into, model);
+        }
+    }
+
+    #[test]
+    fn parses_back_what_it_writes() {
+        for model in ALL {
+            assert_eq!(model.notation().parse::<Model>(), Ok(model));
         }
     }
 
     #[test]
     fn rejects_unknown_notation() {
-        assert_eq!(
-            Model::try_from("irrelevant text"),
-            Err(Error::ParseNotation)
-        );
         assert_eq!(
             "irrelevant text".parse::<Model>(),
             Err(Error::ParseNotation)

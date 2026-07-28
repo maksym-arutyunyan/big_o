@@ -13,7 +13,17 @@ license = "Apache-2.0"
 keywords = ["big_o", "complexity", "analysis", "performance", "algorithm"]
 categories = ["development-tools", "development-tools::profiling", "development-tools::testing"]
 
+# What a consumer of the published crate can use: the library, the tests that
+# hold it to its claims, and the prose. CI config, helper scripts and the
+# toolchain pin serve this repository, not anyone depending on it.
+include = ["/src", "/tests", "/README.md", "/CHANGELOG.md", "/LICENSE"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+# The serde impls are behind a feature, and a feature docs.rs does not turn on
+# is a feature nobody can see documented.
+[package.metadata.docs.rs]
+all-features = true
 
 [dependencies]
 # Optional: `Serialize`/`Deserialize` on the result types, for persisting an
