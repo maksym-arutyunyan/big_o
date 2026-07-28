@@ -58,3 +58,28 @@ jobs:
       # Includes the bounded accuracy sweep. The wider one is scheduled.
       - name: Test
         run: cargo test --all-features
+
+  # Its own job despite the one-build rule above: this builds the *published*
+  # version as well as this one, and does it with a rustdoc that emits JSON,
+  # so it shares no compilation with `check` and would only make that job wait.
+  semver:
+    name: semver
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Compares the public API against the latest release on crates.io and
+      # fails when a change needs a version bump the manifest has not made.
+      #
+      # Under 0.x that means the minor: 0.2.0 -> 0.3.0 is the breaking bump, so
+      # a PR that removes or reshapes public API carries the bump with it rather
+      # than leaving it to be remembered at release time. Which is the point —
+      # `#[non_exhaustive]` and the rest of the 0.2 surface were chosen to make
+      # additions cheap, and nothing checks that intent held except this.
+      #
+      # `--all-features` because the serde impls are public API too, and API
+      # behind a feature flag is API nobody checks by default.
+      - uses: obi1kenobi/cargo-semver-checks-action@6b69fcf40e9b5fb17adeb57e4b6ecd020649a239 # v2.9
+        with:
+          feature-group: all-features
