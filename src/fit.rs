@@ -111,8 +111,12 @@ impl ModelParams {
 /// assert_eq!(inference.best.model, big_o::Model::Quadratic);
 /// assert!(inference.best.is_at_most(big_o::Model::Cubic));
 /// ```
+///
+/// Non-exhaustive: read the fields, but let the crate build the value. A later
+/// release may score a fit on something this one does not measure.
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[non_exhaustive]
 pub struct Fit {
     /// The model class that was fitted.
     pub model: Model,

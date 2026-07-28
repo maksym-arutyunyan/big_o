@@ -64,8 +64,11 @@ const RESAMPLES: usize = 100;
 const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
 
 /// The outcome of inferring a complexity from measurements.
+///
+/// Non-exhaustive: read the fields, but let the crate build the value.
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[non_exhaustive]
 pub struct Inference {
     /// The model that best describes the measurements.
     pub best: Fit,
