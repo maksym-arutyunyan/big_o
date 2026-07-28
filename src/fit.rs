@@ -12,6 +12,7 @@ use std::fmt;
 /// polynomial always has an exponent and a fitted line never carries an unused
 /// one. There is no representable fit with a parameter missing.
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ModelParams {
     /// `f(x) = offset`
     Constant {
@@ -111,6 +112,7 @@ impl ModelParams {
 /// assert!(inference.best.is_at_most(big_o::Model::Cubic));
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Fit {
     /// The model class that was fitted.
     pub model: Model,

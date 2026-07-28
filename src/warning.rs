@@ -8,6 +8,7 @@ use std::fmt;
 /// under which that choice was made, so a result that happens to be right for
 /// the wrong reasons can be told apart from one that is supported by the data.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Warning {
     /// The sample has few distinct input sizes. The fit is determined, but
     /// there is little room for the models to disagree, so the winner is

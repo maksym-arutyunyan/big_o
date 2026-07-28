@@ -16,7 +16,16 @@ categories = ["development-tools", "development-tools::profiling", "development-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# Optional: `Serialize`/`Deserialize` on the result types, for persisting an
+# inference and comparing verdicts across runs (CI baselines and the like).
+serde = { version = "1", features = ["derive"], optional = true }
+
+[features]
+serde = ["dep:serde"]
 
 [dev-dependencies]
 assert_approx_eq = "1.1.0"
 proptest = "1"
+# float_roundtrip: a stored verdict must parse back to the exact written
+# value, or a baseline comparison drifts by an ulp per round trip.
+serde_json = { version = "1", features = ["float_roundtrip"] }
