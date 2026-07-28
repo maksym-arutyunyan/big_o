@@ -31,9 +31,20 @@ env:
   TERM: xterm-256color
 
 jobs:
-  # One job, one build. Splitting format, lint and test across jobs meant
-  # compiling the crate three times over to run three commands against the
-  # same code, and gating all three behind a fourth build that only built it.
+  # One job, because splitting these across jobs buys nothing here and costs a
+  # runner start and a cache restore each time — `Swatinem/rust-cache` keys on
+  # the job, so three jobs warm three caches. A separate `build` job would be
+  # pure duplication besides: `cargo test` builds everything it runs.
+  #
+  # Not, however, because the steps share a build. Clippy runs under a rustc
+  # wrapper of its own, so its artifacts carry a different fingerprint and
+  # `cargo test` rebuilds regardless: measured cold, clippy takes 3.4s and the
+  # test build that follows it 4.0s against 4.4s on its own. Sharing a job saves
+  # under half a second, and the reason to keep it is the runner, not the build.
+  #
+  # Every step below therefore runs even after one has failed. Nothing is gained
+  # by hiding a test failure behind a misplaced space, and a second round trip
+  # to discover it is exactly what a fast CI run is for avoiding.
   check:
     name: fmt + clippy + test
     runs-on: ubuntu-latest
@@ -47,16 +58,28 @@ jobs:
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
 
       - name: Check action pins
+        if: ${{ !cancelled() }}
         run: ./scripts/check-action-pins.sh
 
       - name: Format
+        if: ${{ !cancelled() }}
         run: cargo fmt --all -- --check
 
       - name: Clippy
+        if: ${{ !cancelled() }}
         run: cargo clippy --all-targets --all-features -- -D clippy::all
+
+      # Everything else here passes `--all-features`, which never compiles the
+      # crate as most of its dependants take it: `serde` is optional and off by
+      # default. A serde-only import that escaped its `#[cfg]` would merge green
+      # and break every default-feature build. This is the step that notices.
+      - name: Check without optional features
+        if: ${{ !cancelled() }}
+        run: cargo check --all-targets
 
       # Includes the bounded accuracy sweep. The wider one is scheduled.
       - name: Test
+        if: ${{ !cancelled() }}
         run: cargo test --all-features
 
   # Its own job despite the one-build rule above: this builds the *published*
