@@ -6,7 +6,39 @@ A rewrite. The crate now aims to be usable on real, noisy benchmark data: it
 does not crash, it reports a named complexity where there is one, and it says
 how much of the answer is the data rather than the noise.
 
-Breaking: every public type changed. See the README for the current shape.
+Breaking: every public type changed. See the README for the current shape, and
+the table below for what each 0.1 name became.
+
+### Migrating from 0.1
+
+| 0.1 | 0.2 |
+| --- | --- |
+| `infer_complexity(vec)` returning `(Complexity, Vec<Complexity>)` | `infer_complexity(&slice)` returning an `Inference`; the same two values are its `best` and `all` |
+| `Complexity` | `Fit` |
+| `Complexity.name` | `Fit.model` |
+| `Complexity.notation` | `Fit::to_string()`, which substitutes the fitted exponent — `Fit.model.notation()` leaves it symbolic |
+| `Complexity.rank` | gone; ask the question instead — `is_at_most`, `is_faster_than`, or `<` between two fits |
+| `Name` | `Model` |
+| `Params { gain: Option<f64>, .. }` | `ModelParams`, one variant per shape, each carrying exactly the coefficients that shape has |
+| `Params.residuals` | `Fit.relative_error`, which is scale-free, and `Fit.r_squared` |
+| `complexity("O(n^2)")` | `"O(n^2)".parse::<Model>()` |
+
+The call itself is otherwise unchanged, and takes a slice now rather than an
+owned `Vec`:
+
+```rust
+// 0.1
+let (best, all) = big_o::infer_complexity(measurements.clone())?;
+let name = best.name;
+
+// 0.2
+let inference = big_o::infer_complexity(&measurements)?;
+let model = inference.best.model;
+```
+
+Two things worth reading rather than mechanically translating: `confidence` and
+`warnings` are new, and a 0.1 result that looked firm may arrive with either of
+them saying it never was.
 
 ### Fixed
 
