@@ -89,6 +89,46 @@ let inference = Analysis::new()
 assert_eq!(inference.best.model, Model::Quadratic);
 ```
 
+## Accepting a short ladder
+
+The range warnings advise the sample that makes every model separable. A real
+benchmark often cannot afford it — the widest rungs are the expensive ones —
+and a warning that fires on every run of an accepted trade-off stops being
+read. Declare the ladder you can afford, and the warnings fire only below it:
+
+```rust
+use big_o::Analysis;
+
+let measurements = [(100., 105.), (200., 198.), (400., 405.), (1000., 1002.)];
+
+let inference = Analysis::new()
+    .accept_range(4, 1.0) // four sizes over one decade, knowingly
+    .infer(&measurements)
+    .unwrap();
+
+assert!(inference.warnings.is_empty());
+```
+
+This changes which warnings are raised and nothing else — the inference is
+exactly as weak as it was; you have signed off on that weakness, not repaired
+it.
+
+## Serialization
+
+The `serde` feature (off by default) derives `Serialize`/`Deserialize` for the
+result types, so an inference can be written down and compared against a later
+run — a committed baseline in CI, a saved report:
+
+```toml
+big_o = { version = "0.2", features = ["serde"] }
+```
+
+Inference is deterministic — the same measurements always produce the same
+result, including `confidence` — which is what makes a stored verdict worth
+comparing against at all. If you store as JSON and compare bit-exactly, enable
+`serde_json`'s `float_roundtrip` feature: its default float parsing can be an
+ulp off, which is drift a comparison would report as a change.
+
 ## Errors
 
 - `NotEnoughData` — fewer than three distinct input sizes. Repeated measurements

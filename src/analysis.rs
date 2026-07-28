@@ -65,6 +65,7 @@ const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
 
 /// The outcome of inferring a complexity from measurements.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Inference {
     /// The model that best describes the measurements.
     pub best: Fit,
@@ -103,6 +104,8 @@ pub struct Inference {
 #[derive(Clone, Debug)]
 pub struct Analysis {
     models: Vec<Model>,
+    advised_points: usize,
+    advised_decades: f64,
 }
 
 impl Default for Analysis {
@@ -116,6 +119,8 @@ impl Analysis {
     pub fn new() -> Self {
         Self {
             models: model::ALL.to_vec(),
+            advised_points: ADVISED_POINTS,
+            advised_decades: ADVISED_DECADES,
         }
     }
 
@@ -126,6 +131,37 @@ impl Analysis {
     /// the best of the models they consider possible rather than of all of them.
     pub fn models(mut self, models: impl IntoIterator<Item = Model>) -> Self {
         self.models = models.into_iter().collect();
+        self
+    }
+
+    /// Declares the ladder the caller can afford, so [`Warning::TooFewPoints`]
+    /// and [`Warning::NarrowRange`] are raised only below it.
+    ///
+    /// The default thresholds describe the sample that makes every model
+    /// separable. Real benchmarks often cannot afford that sample — the widest
+    /// rungs are the expensive ones — and a warning that fires on every run of
+    /// an accepted trade-off stops being read, taking the warnings that matter
+    /// down with it. Declaring the trade-off keeps the remaining warnings loud.
+    ///
+    /// This changes which warnings are raised and nothing else: not the fit,
+    /// not the confidence, and not how separable the models actually are on a
+    /// short ladder. The inference is exactly as weak as it was — the caller
+    /// has signed off on that weakness, not repaired it.
+    ///
+    /// # Example
+    /// ```
+    /// use big_o::Analysis;
+    ///
+    /// let data = [(100., 105.), (200., 198.), (400., 405.), (1000., 1002.)];
+    ///
+    /// // Four sizes over one decade, accepted as such: no range warnings.
+    /// let inference = Analysis::new().accept_range(4, 1.0).infer(&data).unwrap();
+    ///
+    /// assert!(inference.warnings.is_empty());
+    /// ```
+    pub fn accept_range(mut self, sizes: usize, decades: f64) -> Self {
+        self.advised_points = sizes;
+        self.advised_decades = decades;
         self
     }
 
@@ -222,18 +258,18 @@ impl Analysis {
         let mut warnings = Vec::new();
 
         let points = sample.points().len();
-        if points < ADVISED_POINTS {
+        if points < self.advised_points {
             warnings.push(Warning::TooFewPoints {
                 got: points,
-                advised: ADVISED_POINTS,
+                advised: self.advised_points,
             });
         }
 
         let decades = sample.decades();
-        if decades < ADVISED_DECADES {
+        if decades < self.advised_decades {
             warnings.push(Warning::NarrowRange {
                 decades,
-                advised: ADVISED_DECADES,
+                advised: self.advised_decades,
             });
         }
 

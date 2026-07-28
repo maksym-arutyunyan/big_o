@@ -41,6 +41,11 @@ Breaking: every public type changed. See the README for the current shape.
 - `is_at_most` and `is_faster_than` compare a fit against a named bound.
 - `Analysis` restricts inference to a chosen set of models.
 - `Display for Fit` substitutes fitted values: `O(n^1.5)`, `O(2^n)`.
+- `Analysis::accept_range` declares the ladder a caller can afford, so the
+  range warnings fire only below it — an acknowledged short ladder stops
+  repeating itself, and the warnings that matter stay loud.
+- A `serde` feature (off by default) derives `Serialize`/`Deserialize` for the
+  result types, so a verdict can be persisted and compared against a later run.
 - Repeated measurements of one input size are collapsed to their median, so a
   descheduled run does not steer the result.
 - `rust-version` is declared and built in CI.

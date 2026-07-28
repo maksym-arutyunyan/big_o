@@ -9,6 +9,7 @@ use std::str::FromStr;
 /// model has been fitted to data. See [`Fit`](crate::Fit) for the result of
 /// that fitting.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Model {
     /// `O(1)`
     Constant,
